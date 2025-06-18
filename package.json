@@ -1,0 +1,23 @@
+{
+  "name": "fixel",
+  "version": "1.0.0",
+  "description": "projet personnel pour mon entreprise",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MancunienFan/Fixel.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MancunienFan/Fixel/issues"
+  },
+  "homepage": "https://github.com/MancunienFan/Fixel#readme",
+  "dependencies": {
+    "mongodb": "^6.17.0"
+  }
+}
