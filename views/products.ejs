@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Produits en vente - FixEl</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <h1>Produits à vendre</h1>
+  <ul>
+    <% products.forEach(product => { %>
+      <li><%= product.name %> - <%= product.price %>€</li>
+    <% }) %>
+  </ul>
+  <a href="/services">Voir les services</a> | <a href="/transactions">Historique</a>
+</body>
+</html>

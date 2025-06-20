@@ -1,0 +1,13 @@
+{
+  "products": [
+    { "id": 1, "name": "iPhone 11", "price": 450 },
+    { "id": 2, "name": "Samsung S21", "price": 500 }
+  ],
+  "services": [
+    { "id": 1, "name": "Remplacement écran", "price": 80 },
+    { "id": 2, "name": "Changement batterie", "price": 50 }
+  ],
+  "transactions": [
+    { "id": 1, "type": "vente", "item": "iPhone 11", "date": "2025-06-18" }
+  ]
+}
