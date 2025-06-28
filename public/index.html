@@ -39,7 +39,8 @@
   </table>
 
   <script>
-    fetch('http://localhost:3000/api/produits')
+    //en local utiliser : http://localhost:3000/api/produits
+    fetch('/api/produits')
       .then(res => res.json())
       .then(produits => {
         const tbody = document.querySelector('#produitsTable tbody');
