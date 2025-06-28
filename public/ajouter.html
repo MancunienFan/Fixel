@@ -163,7 +163,7 @@ const produitId = params.get('id');
 
 if (produitId) {
   // On est en mode consultation/modification
-  fetch(`http://localhost:3000/api/produit/${produitId}`)
+  fetch(`https://fixel.onrender.com/api/produit/${produitId}`)
     .then(res => res.json())
     .then(p => {
       for (const [key, value] of Object.entries(p)) {
