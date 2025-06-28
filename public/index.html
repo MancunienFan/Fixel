@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Produits - FixEl</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f0f0f0;
+      padding: 20px;
+    }
+    table {
+      width: 100%;
+      background: white;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+    }
+    th {
+      background: #333;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>Liste des Produits</h1>
+  <table id="produitsTable">
+    <thead>
+      <tr>
+        <th>Nom</th>
+        <th>Description</th>
+        <th>Prix</th>
+        <th>Catégorie</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    fetch('http://localhost:3000/api/produits')
+      .then(res => res.json())
+      .then(produits => {
+        const tbody = document.querySelector('#produitsTable tbody');
+        produits.forEach(produit => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${produit.nom}</td>
+            <td>${produit.description}</td>
+            <td>${produit.prix} $</td>
+            <td>${produit.categorie}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      });
+  </script>
+</body>
+</html>
