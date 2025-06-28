@@ -97,7 +97,7 @@
     <h1>Ajouter un Nouveau Produit</h1>
 
     <form id="form-produit">
-      <label>Nom
+      <label>Produit
         <input type="text" name="nom" required>
       </label>
 
@@ -110,7 +110,7 @@
       </label>
 
       <label>Prix
-        <input type="number" name="prix" step="10" required>
+        <input type="number" name="prix"  required>
       </label>
 
       <label>Catégorie
@@ -136,6 +136,14 @@
       <label>Prix de vente
         <input type="number" name="prixvente" step="0.01">
       </label>
+      
+     <label>Disponibilité
+  <select name="disponibilite" required>
+    <option value="disponible">Disponible</option>
+    <option value="vendu">Vendu</option>
+    <option value="Pour pièces">Pour pièces</option>
+  </select>
+</label>
 
  <label style="grid-column: 1 / -1;">Notes
   <textarea name="notes" rows="4" style="width: 100%; resize: vertical; padding: 0.6rem; font-size: 1rem; border-radius: 6px; border: 1px solid #ccc; margin-top: 5px;"></textarea>
@@ -155,7 +163,7 @@
       const data = {};
       formData.forEach((val, key) => data[key] = val);
 
-      const res = await fetch('http://localhost:3000/api/produits', {
+      const res = await fetch('https://fixel.onrender.com/api/produits', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)

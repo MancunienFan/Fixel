@@ -24,10 +24,19 @@ const produitSchema = new mongoose.Schema({
 },
 
 imei:String,
+disponibilite: {
+  type: String,
+  enum: ["disponible", "vendu", "Pour pièces"],
+  required: true,
+  default: "disponible"
+},
+
  notes: {
     type: String,
     default: ""  // Par défaut vide
-  }
+  },
+
+
 
 });
 
