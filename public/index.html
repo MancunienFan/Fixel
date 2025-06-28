@@ -48,9 +48,9 @@
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>${produit.nom}</td>
-            <td>${produit.description}</td>
+            <td>${produit.statut}</td>
             <td>${produit.prix} $</td>
-            <td>${produit.categorie}</td>
+            <td>${produit.dateachat}</td>
           `;
           tbody.appendChild(tr);
         });
