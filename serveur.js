@@ -17,7 +17,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 // Routes
 const produitRoutes = require('./routes/produitRoutes');
-app.use('/api/produits', produitRoutes);
+app.use('/api/', produitRoutes);
 
 const reparationRoutes = require('./routes/reparationRoutes');
 app.use('/api/reparations', reparationRoutes);
@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });*/
 
-app.get('*', (req, res) => {
+app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 

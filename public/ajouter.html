@@ -157,6 +157,25 @@
   </div>
 
   <script>
+    // Lire l'ID dans l'URL
+const params = new URLSearchParams(window.location.search);
+const produitId = params.get('id');
+
+if (produitId) {
+  // On est en mode consultation/modification
+  fetch(`http://localhost:3000/api/produit/${produitId}`)
+    .then(res => res.json())
+    .then(p => {
+      for (const [key, value] of Object.entries(p)) {
+        const champ = document.querySelector(`[name="${key}"]`);
+        if (champ) champ.value = value;
+      }
+    })
+    .catch(err => {
+      alert("Erreur lors du chargement du produit : " + err.message);
+    });
+}
+
     document.getElementById('form-produit').addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(e.target);

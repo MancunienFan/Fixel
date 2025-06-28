@@ -47,6 +47,12 @@
         const tbody = document.querySelector('#produitsTable tbody');
         produits.forEach(produit => {
           const tr = document.createElement('tr');
+          // const row = document.createElement('tr');
+           tr.style.cursor = 'pointer';
+          tr.onclick = () => {
+          window.location.href = `ajouter.html?id=${produit._id}`;
+  };
+
           tr.innerHTML = `
             <td>${produit.nom}</td>
             <td>${produit.statut}</td>

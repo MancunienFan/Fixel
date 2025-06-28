@@ -24,7 +24,7 @@ router.get('/', async (req, res) => {
 });
 
 // Récupérer les réparations d’un produit
-router.get('/produit/:id', async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const reparations = await Reparation.find({ produit: req.params.id });
     res.json(reparations);
