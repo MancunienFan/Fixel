@@ -21,9 +21,22 @@ const produitSchema = new mongoose.Schema({
  datevente: {
   type: Date,
   default: null
-}
+},
 
+imei:String,
+ notes: {
+    type: String,
+    default: ""  // Par défaut vide
+  }
 
 });
+
+// ➕ Ajout du champ virtuel pour afficher la date formatée
+produitSchema.virtual('dateachatFormatee').get(function () {
+  return this.dateachat ? this.dateachat.toLocaleDateString('fr-FR') : '';
+});
+
+// Pour que le champ apparaisse dans les réponses JSON
+produitSchema.set('toJSON', { virtuals: true });
 
 module.exports = mongoose.model('Produit', produitSchema);

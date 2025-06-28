@@ -21,11 +21,14 @@ app.use('/api/produits', produitRoutes);
 
 const reparationRoutes = require('./routes/reparationRoutes');
 app.use('/api/reparations', reparationRoutes);
-
+/*
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+});*/
 
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/index.html'));
+});
 
 // Lancer le serveur
 const PORT = process.env.PORT || 3000;

@@ -30,9 +30,9 @@
     <thead>
       <tr>
         <th>Nom</th>
-        <th>Description</th>
+        <th>état</th>
         <th>Prix</th>
-        <th>Catégorie</th>
+        <th>date d'achat</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -50,11 +50,12 @@
             <td>${produit.nom}</td>
             <td>${produit.statut}</td>
             <td>${produit.prix} $</td>
-            <td>${produit.dateachat}</td>
+            <td>${produit.dateachatFormatee}</td>
           `;
           tbody.appendChild(tr);
         });
       });
   </script>
+  <button onclick="window.location.href='ajouter.html'">➕ Ajouter un produit</button>
 </body>
 </html>
