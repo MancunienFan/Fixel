@@ -1,6 +1,4 @@
-const baseURL = location.hostname === "localhost"
-  ? "http://localhost:3000/api"
-  : "https://fixel.onrender.com/api";
+
 
 const API_BASE_URL = window.location.origin;
 const params = new URLSearchParams(window.location.search);
@@ -71,7 +69,7 @@ document.getElementById('btn-update').addEventListener('click', async () => {
   const data = {};
   formData.forEach((v, k) => data[k] = v);
 
-  const res = await fetch(`${baseURL}/api/reparations/${reparationId}`, {
+  const res = await fetch(`${API_BASE_URL}/api/reparations/${reparationId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
@@ -89,7 +87,7 @@ document.getElementById('btn-update').addEventListener('click', async () => {
 document.getElementById('btn-delete').addEventListener('click', async () => {
   if (!confirm("Confirmer la suppression ?")) return;
 
-  const res = await fetch(`${baseURL}/reparations/${reparationId}`, {
+  const res = await fetch(`${API_BASE_URL}/api/reparations/${reparationId}`, {
     method: 'DELETE'
   });
 
