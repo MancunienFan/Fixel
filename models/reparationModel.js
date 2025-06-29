@@ -22,7 +22,12 @@ const ReparationSchema = new mongoose.Schema({
     type: String,
     enum: ['en attente', 'en cours', 'terminée'],
     default: 'en attente'
+  },
+   notes: {
+    type: String,
+    default: ""  // Par défaut vide
   }
+
 });
 
 module.exports = mongoose.model('Reparation', ReparationSchema);

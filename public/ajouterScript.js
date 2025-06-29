@@ -4,7 +4,31 @@ const produitId = params.get('id');
 const API_BASE_URL = window.location.origin;
 
 
-//fetch(`${API_BASE_URL}/api/produit/${produitId}`)
+async function chargerReparations() {
+  const res = await fetch(`${API_BASE_URL}/reparations/produit/${produitId}`);
+  const reparations = await res.json();
+
+  if (reparations.length === 0) {
+    // Aucune réparation : on ne montre rien
+    return;
+  }
+
+  // Affiche le conteneur
+  document.getElementById('reparations-container').style.display = 'block';
+
+  const tbody = document.querySelector('#table-reparations tbody');
+  reparations.forEach(rep => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${new Date(rep.date).toLocaleDateString()}</td>
+      <td>${rep.description}</td>
+      <td>${rep.cout} $</td>
+      <td>${rep.statut}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
 
 if (produitId) {
   // On est en mode consultation/modification
@@ -118,3 +142,8 @@ function notify(message) {
     new Notification('FixEl', { body: message });
   }
 }
+
+//bouton ajouter réparation
+document.getElementById('btn-ajouter-reparation').addEventListener('click', () => {
+  window.location.href = `./reparation/reparation.html?produit=${produitId}`;
+});

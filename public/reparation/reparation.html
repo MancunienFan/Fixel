@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Réparation</title>
+  <link rel="stylesheet" href="reparation.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Réparation</h1>
+
+    <form id="form-reparation">
+    
+
+      <label>Description
+        <input type="text" name="description" required>
+      </label>
+
+      <label>Coût
+        <input type="number" name="cout" required step="0.01">
+      </label>
+
+      
+
+      <label>Statut
+        <select name="statut" required>
+          <option value="en cours">En cours</option>
+          <option value="terminée">Terminée</option>
+          <option value="annulée">Annulée</option>
+        </select>
+      </label>
+
+      <!-- Produit ID caché -->
+      <input type="hidden" name="produit" id="produitId">
+
+      <div class="actions">
+        <button type="submit" id="btn-enregistrer">✅ Enregistrer</button>
+        <button type="button" id="btn-update">🔄 Mettre à jour</button>
+        <button type="button" id="btn-delete">🗑️ Effacer</button>
+        <button type="button" onclick="window.location.href='index.html'">⬅️ Retour</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="reparation.js"></script>
+</body>
+</html>
