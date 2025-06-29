@@ -63,8 +63,9 @@ document.getElementById('btn-update').addEventListener('click', async () => {
   });
 
   if (res.ok) {
-    alert('Produit mis à jour avec succès !');
-    window.location.href = 'index.html';
+   // alert('Produit mis à jour avec succès !');
+    notify('Produit ajouté avec succès !');
+    
   } else {
     const err = await res.json();
     alert('Erreur : ' + err.erreur);
@@ -88,3 +89,17 @@ document.getElementById('btn-delete').addEventListener('click', async () => {
     alert('Erreur : ' + err.erreur);
   }
 });
+
+function notify(message) {
+  if (Notification.permission !== 'granted') {
+    Notification.requestPermission().then(permission => {
+      if (permission === 'granted') {
+        new Notification('FixEl', { body: message });
+      } else {
+        alert(message);
+      }
+    });
+  } else {
+    new Notification('FixEl', { body: message });
+  }
+}
