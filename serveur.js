@@ -17,7 +17,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 // Routes
 const produitRoutes = require('./routes/produitRoutes');
-app.use('/api/', produitRoutes);
+app.use('/api', produitRoutes);
 
 const reparationRoutes = require('./routes/reparationRoutes');
 app.use('/api/reparations', reparationRoutes);

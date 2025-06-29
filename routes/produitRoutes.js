@@ -39,5 +39,27 @@ router.get('/produit/:id', async (req, res) => {
   }
 });
 
+// PUT : mise à jour
+router.put('/produit/:id', async (req, res) => {
+  try {
+    const produit = await Produit.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!produit) return res.status(404).json({ erreur: 'Produit non trouvé' });
+    res.json(produit);
+  } catch (err) {
+    res.status(500).json({ erreur: err.message });
+  }
+});
+
+// DELETE : suppression
+router.delete('/produit/:id', async (req, res) => {
+  try {
+    const deleted = await Produit.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ erreur: 'Produit non trouvé' });
+    res.json({ message: 'Produit supprimé' });
+  } catch (err) {
+    res.status(500).json({ erreur: err.message });
+  }
+});
+
 
 module.exports = router;
