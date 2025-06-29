@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Reparation = require('../models/reparationModel');
+const Produit = require('../models/produitModel');
+
 
 //-1 Obtenir toutes les réparations d’un produit
 router.get('/reparations/produit/:id', async (req, res) => {
@@ -14,17 +16,37 @@ router.get('/reparations/produit/:id', async (req, res) => {
 
 //-2 ajouter réparation
 
-
 router.post('/reparation', async (req, res) => {
   try {
-    const reparation = new Reparation(req.body);
+    const { produit, description, date, prix, statut, notes } = req.body;
+
+    // 1. Vérifier que l'ID produit est fourni
+    if (!produit) {
+      return res.status(400).json({ erreur: "ID du produit requis." });
+    }
+
+    // 2. Vérifier que le produit existe
+    const produitExiste = await Produit.findById(produit);
+    if (!produitExiste) {
+      return res.status(404).json({ erreur: "Produit introuvable." });
+    }
+
+    // 3. Créer la réparation
+    const reparation = new Reparation({
+      produit,
+      description,
+      date: date || new Date(),
+      prix,
+      statut: statut || 'en cours',
+      notes: notes || ''
+    });
+
     await reparation.save();
     res.status(201).json(reparation);
   } catch (err) {
-    res.status(400).json({ erreur: err.message });
+    res.status(500).json({ erreur: err.message });
   }
 });
-
 
 // GET réparation par ID
 router.get('/reparations/:id', async (req, res) => {

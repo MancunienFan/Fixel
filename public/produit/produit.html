@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Produit</title>
-  <link rel="stylesheet" href="ajouterStyle.css">
+  <link rel="stylesheet" href="produit.css">
 </head>
 
 <body>
@@ -68,7 +68,7 @@
 
       <div class="actions">
         <button type="submit" id="submit">✅ Enregistrer</button>
-        <button type="button" onclick="window.location.href='index.html'">⬅️ Retour</button>
+        <button type="button" onclick="window.location.href='../../index.html'">⬅️ Retour</button>
         <button type="button" id="btn-update" style="background-color: #ffc107; color: black;">✏️ Mise à jour</button>
         <button type="button" id="btn-delete" style="background-color: #dc3545; color: white;">🗑️ Effacer</button>
          <button type="button" id="btn-ajouter-reparation">➕ Ajouter réparation</button>
@@ -82,10 +82,11 @@
   <table id="table-reparations">
     <thead>
       <tr>
-        <th>Date</th>
+     
         <th>Description</th>
-        <th>Coût</th>
+        <th>Prix</th>
         <th>Statut</th>
+           <th>Date</th>
       </tr>
     </thead>
     <tbody>
@@ -95,7 +96,7 @@
 </div>
 
 
-  <script src="ajouterScript.js"></script>
+  <script src="produit.js"></script>
 </body>
 
 </html>

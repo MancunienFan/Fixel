@@ -16,8 +16,8 @@
         <input type="text" name="description" required>
       </label>
 
-      <label>Coût
-        <input type="number" name="cout" required step="0.01">
+      <label>prix
+        <input type="number" name="prix" required step="0.01">
       </label>
 
       
@@ -29,6 +29,10 @@
           <option value="annulée">Annulée</option>
         </select>
       </label>
+        <label style="grid-column: 1 / -1;">Notes
+        <textarea name="notes" rows="4"
+          style="width: 100%; resize: vertical; padding: 0.6rem; font-size: 1rem; border-radius: 6px; border: 1px solid #ccc; margin-top: 5px;"></textarea>
+      </label>
 
       <!-- Produit ID caché -->
       <input type="hidden" name="produit" id="produitId">
@@ -37,8 +41,9 @@
         <button type="submit" id="btn-enregistrer">✅ Enregistrer</button>
         <button type="button" id="btn-update">🔄 Mettre à jour</button>
         <button type="button" id="btn-delete">🗑️ Effacer</button>
-        <button type="button" onclick="window.location.href='index.html'">⬅️ Retour</button>
+        <button type="button" id="btn-retour">⬅️ Retour</button>
       </div>
+      
     </form>
   </div>
 
