@@ -83,3 +83,8 @@ button[type="button"]:hover {
     gap: 1rem;
   }
 }
+button:disabled {
+  background-color: #ccc !important;
+  color: #666 !important;
+  cursor: not-allowed;
+}

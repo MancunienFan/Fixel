@@ -50,7 +50,7 @@
           // const row = document.createElement('tr');
            tr.style.cursor = 'pointer';
           tr.onclick = () => {
-          window.location.href = `ajouter.html?id=${produit._id}`;
+          window.location.href = `produit.html?id=${produit._id}`;
   };
 
           tr.innerHTML = `
@@ -65,6 +65,6 @@
         });
       });
   </script>
-  <button onclick="window.location.href='ajouter.html'">➕ Ajouter un produit</button>
+  <button onclick="window.location.href='produit.html'">➕ Ajouter un produit</button>
 </body>
 </html>

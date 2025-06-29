@@ -2,11 +2,20 @@
 const params = new URLSearchParams(window.location.search);
 const produitId = params.get('id');
 const API_BASE_URL = window.location.origin;
+
+
 //fetch(`${API_BASE_URL}/api/produit/${produitId}`)
 
 if (produitId) {
   // On est en mode consultation/modification
-  fetch(`https://fixel.onrender.com/api/produit/${produitId}`)
+   const btnEnregistrer = document.getElementById('submit');
+  if (btnEnregistrer) {
+    btnEnregistrer.disabled = true;
+    btnEnregistrer.style.opacity = 0.6;
+    btnEnregistrer.style.cursor = 'not-allowed';
+    btnEnregistrer.title = "Désactivé en consultation";
+  }
+  fetch(`${API_BASE_URL}/api/produit/${produitId}`)
     .then(res => res.json())
     .then(p => {
       for (const [key, value] of Object.entries(p)) {
@@ -21,11 +30,16 @@ if (produitId) {
 
 document.getElementById('form-produit').addEventListener('submit', async (e) => {
   e.preventDefault();
+
+  // Confirmation avant d'ajouter
+  const confirmer = confirm("Voulez-vous vraiment ajouter ce produit ?");
+  if (!confirmer) return; // Si on annule, on ne fait rien
+
   const formData = new FormData(e.target);
   const data = {};
   formData.forEach((val, key) => data[key] = val);
 
-  const res = await fetch('${API_BASE_URL}/api/produits', {
+  const res = await fetch(`${API_BASE_URL}/api/produits`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
@@ -39,6 +53,7 @@ document.getElementById('form-produit').addEventListener('submit', async (e) => 
     alert('Erreur : ' + err.erreur);
   }
 });
+
 
 // Cacher les boutons "update" et "delete" si on est en mode ajout
 if (!produitId) {
