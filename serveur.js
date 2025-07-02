@@ -26,8 +26,7 @@ app.use('/api', reparationRoutes);
 const utilisateurRoutes = require('./routes/utilisateurRoutes');
 app.use('/api/utilisateurs', utilisateurRoutes);
 
-const { router: utilisateurRoutes, verifierToken } = require('./routes/utilisateurRoutes');
-app.use('/api/utilisateurs', utilisateurRoutes);
+
 
 
 /*
