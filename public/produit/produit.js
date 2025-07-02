@@ -3,6 +3,16 @@ const params = new URLSearchParams(window.location.search);
 const produitId = params.get('id');
 const API_BASE_URL = window.location.origin;
 
+const token = localStorage.getItem('token');
+const role = localStorage.getItem('role');
+
+if (!token) {
+  window.location.href = '/login.html';
+} else if (role !== 'admin' && role !== 'mod') {
+  alert("Accès refusé.");
+  window.location.href = '/index.html';
+}
+
 
 async function chargerReparations() {
   const res = await fetch(`${API_BASE_URL}/api/reparations/produit/${produitId}`);

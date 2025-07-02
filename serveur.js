@@ -21,6 +21,15 @@ app.use('/api', produitRoutes);
 
 const reparationRoutes = require('./routes/reparationRoutes');
 app.use('/api', reparationRoutes);
+
+//utilisateur
+const utilisateurRoutes = require('./routes/utilisateurRoutes');
+app.use('/api/utilisateurs', utilisateurRoutes);
+
+const { router: utilisateurRoutes, verifierToken } = require('./routes/utilisateurRoutes');
+app.use('/api/utilisateurs', utilisateurRoutes);
+
+
 /*
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
