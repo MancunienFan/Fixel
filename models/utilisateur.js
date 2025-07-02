@@ -15,4 +15,4 @@ utilisateurSchema.pre('save', async function(next) {
   next();
 });
 
-module.exports = mongoose.model('Utilisateur', utilisateurSchema);
+module.exports = mongoose.model('utilisateur', utilisateurSchema);

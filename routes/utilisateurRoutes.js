@@ -83,5 +83,5 @@ router.delete('/:id', verifierToken(['admin']), async (req, res) => {
   }
 });
 
-module.exports = { router, verifierToken };
+module.exports = router;
 
