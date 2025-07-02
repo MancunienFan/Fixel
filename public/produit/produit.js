@@ -131,7 +131,7 @@ document.getElementById('btn-delete').addEventListener('click', async () => {
 
   if (res.ok) {
     alert('Produit supprimé.');
-    window.location.href = '../produit/index.html';
+    window.location.href = '../index.html';
   } else {
     const err = await res.json();
     alert('Erreur : ' + err.erreur);
