@@ -80,7 +80,7 @@ document.getElementById('form-produit').addEventListener('submit', async (e) => 
 
   if (res.ok) {
     alert('Produit ajouté avec succès !');
-    window.location.href = 'index.html';
+   // window.location.href = 'index.html';
   } else {
     const err = await res.json();
     alert('Erreur : ' + err.erreur);
@@ -131,7 +131,7 @@ document.getElementById('btn-delete').addEventListener('click', async () => {
 
   if (res.ok) {
     alert('Produit supprimé.');
-    window.location.href = 'index.html';
+    window.location.href = '../produit/index.html';
   } else {
     const err = await res.json();
     alert('Erreur : ' + err.erreur);
