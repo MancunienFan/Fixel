@@ -28,7 +28,7 @@
       color: white;
     }
   </style>
-  <button onclick="logout()">Déconnexion</button>
+
    <script src="/auth.js"></script>
 <nav id="navbar"></nav>
 
@@ -53,11 +53,12 @@
 const role = localStorage.getItem('role');
 const navbar = document.getElementById('navbar');
 
+//${role === 'admin' || role === 'mod' ? '<a href="/produit/produit.html">Produits</a>' : ''}
 if (navbar) {
   navbar.innerHTML = `
     <a href="/index.html">Accueil</a>
     ${role === 'admin' ? '<a href="/admin/utilisateurs.html">Utilisateurs</a>' : ''}
-    ${role === 'admin' || role === 'mod' ? '<a href="/produit/produit.html">Produits</a>' : ''}
+    
     <a href="/reparation/reparation.html">Réparations</a>
     <a href="#" onclick="logout()">Déconnexion</a>
   `;
