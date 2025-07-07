@@ -4,8 +4,14 @@ const ReparationSchema = new mongoose.Schema({
   produit: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Produit',
-    required: true
+    required: false
   },
+  client: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Client',
+    required: false
+  },
+
   description: {
     type: String,
     required: true
@@ -23,7 +29,7 @@ const ReparationSchema = new mongoose.Schema({
     enum: ['en attente', 'en cours', 'terminée'],
     default: 'en attente'
   },
-   notes: {
+  notes: {
     type: String,
     default: ""  // Par défaut vide
   }

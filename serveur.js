@@ -26,6 +26,9 @@ app.use('/api', reparationRoutes);
 const utilisateurRoutes = require('./routes/utilisateurRoutes');
 app.use('/api/utilisateurs', utilisateurRoutes);
 
+//clients
+const clientRoutes = require('./routes/clientRoutes');
+app.use('/api/clients', clientRoutes);
 
 
 
