@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Client</title>
+   <link rel="stylesheet" href="client.css">
+</head>
+
+<body>
+  <div class="container">
+    <h1>Client</h1>
+
+    <form id="form-client">
+      <input type="hidden" id="clientId" name="clientId">
+
+      <label>Nom
+        <input type="text" id="nom" name="nom" required>
+      </label>
+
+      <label>Prénom
+        <input type="text" id="prenom" name="prenom" required>
+      </label>
+
+      <label>Téléphone
+        <input type="tel" id="telephone" name="telephone">
+      </label>
+
+      <label>Email
+        <input type="email" id="email" name="email">
+      </label>
+
+      <label style="grid-column: 1 / -1;">Notes
+        <textarea id="notes" name="notes" rows="4"></textarea>
+      </label>
+
+      <div class="actions">
+        <button type="submit" id="enregistrer">✅ Enregistrer</button>
+        <button type="button" onclick="window.location.href='clients.html'">⬅️ Retour</button>
+        <button type="button" id="btn-update" style="background-color: #ffc107; color: black;">✏️ Mise à jour</button>
+        <button type="button" id="btn-delete" style="background-color: #dc3545; color: white;">🗑️ Effacer</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="client.js"></script>
+</body>
+
+</html>
