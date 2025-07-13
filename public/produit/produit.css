@@ -119,3 +119,14 @@ button:disabled {
 #table-reparations td:last-child {
   font-weight: 600;
 }
+
+form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.champ {
+  display: flex;
+  flex-direction: column;
+}

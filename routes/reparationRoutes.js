@@ -101,5 +101,16 @@ router.get('/', async (req, res) => {
 });
 
 
+// GET /api/reparations/client/:clientId
+router.get('/client/:clientId', async (req, res) => {
+  try {
+    const reparations = await Reparation.find({ clientId: req.params.clientId });
+    res.json(reparations);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+
 
 module.exports = router;

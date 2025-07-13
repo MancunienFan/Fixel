@@ -78,3 +78,82 @@
     button[type="button"]:hover {
       background-color: #5a6268;
     }
+
+
+    /* === Téléphones Réparés / Section Produits Client === */
+
+#produits-section {
+  display: none;
+  margin-top: 3rem;
+}
+
+#produits-section h2 {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.table-container {
+  max-width: 900px;
+  margin: auto;
+  background: #fff;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#produits-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+#produits-table thead {
+  background-color: #f2f2f2;
+}
+
+#produits-table th,
+#produits-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+th {
+  background-color: #007BFF;
+  color: white;
+}
+/* Conteneur du tableau */
+.table-container {
+  max-width: 900px;
+  margin: auto;
+  background: #fff;
+  padding: 1rem;
+  border-radius: 16px; /* 👈 arrondi doux */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden; /* pour que les coins du tableau suivent le conteneur */
+}
+
+/* Tableau */
+#produits-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 12px; /* facultatif, ne s’applique que si overflow est géré */
+  overflow: hidden;
+}
+
+/* En-tête */
+#produits-table thead {
+  background-color: #007BFF;
+  color: white;
+}
+
+/* Cellules */
+#produits-table th,
+#produits-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+

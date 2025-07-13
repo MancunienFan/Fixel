@@ -62,4 +62,36 @@ router.delete('/produit/:id', async (req, res) => {
 });
 
 
+router.get('/produits/client/:clientId', async (req, res) => {
+  try {
+    const produits = await Produit.find({
+      clientId: req.params.clientId,
+      type: "client"  // Important pour filtrer les téléphones du client
+    });
+    res.json(produits);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+
+router.post('/produits/client/:clientId', async (req, res) => {
+  try {
+    const nouveauProduit = new Produit({
+      ...req.body,
+      clientId: req.params.clientId,
+      type: "client", // on force le type ici
+      dateCreation: new Date(),
+      dateModification: new Date()
+    });
+
+    const savedProduit = await nouveauProduit.save();
+    res.status(201).json(savedProduit);
+  } catch (err) {
+    res.status(500).json({ erreur: err.message });
+  }
+});
+
+
+
 module.exports = router;

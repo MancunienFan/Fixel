@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Client</title>
-   <link rel="stylesheet" href="client.css">
+  <link rel="stylesheet" href="client.css">
 </head>
 
 <body>
@@ -23,25 +23,60 @@
       </label>
 
       <label>Téléphone
-        <input type="tel" id="telephone" name="telephone">
+        <input type="tel" id="telephone" name="telephone" required>
       </label>
 
       <label>Email
         <input type="email" id="email" name="email">
       </label>
 
+      <!-- ... -->
+      <label>Date de création
+        <input type="text" id="dateCreation" name="dateCreation" disabled>
+      </label>
+
+      <label>Dernière modification
+        <input type="text" id="dateModification" name="dateModification" disabled>
+      </label>
+      <!-- ... -->
+
+
       <label style="grid-column: 1 / -1;">Notes
         <textarea id="notes" name="notes" rows="4"></textarea>
       </label>
 
       <div class="actions">
-        <button type="submit" id="enregistrer">✅ Enregistrer</button>
+        <button type="submit" id="submit">✅ Enregistrer</button>
         <button type="button" onclick="window.location.href='clients.html'">⬅️ Retour</button>
         <button type="button" id="btn-update" style="background-color: #ffc107; color: black;">✏️ Mise à jour</button>
         <button type="button" id="btn-delete" style="background-color: #dc3545; color: white;">🗑️ Effacer</button>
+        <button type="button" id="btn-ajout-reparation">➕ Ajouter téléphone</button>
       </div>
     </form>
   </div>
+
+ <div id="produits-section">
+  <h2>Téléphones Réparés</h2>
+
+  <div class="table-container">
+    <table id="produits-table">
+      <thead>
+        <tr>
+          <th>Modèle</th>
+          <th>Nom</th>
+          <th>IMEI</th>
+          <th>Dernière modification</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Lignes dynamiques ici -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+
 
   <script src="client.js"></script>
 </body>
