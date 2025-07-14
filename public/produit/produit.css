@@ -130,3 +130,20 @@ form {
   display: flex;
   flex-direction: column;
 }
+
+
+#navbar {
+  background-color: #333;
+  padding: 10px;
+  display: flex;
+  gap: 15px;
+}
+
+#navbar a {
+  color: white;
+  text-decoration: none;
+}
+
+#navbar a:hover {
+  text-decoration: underline;
+}

@@ -8,6 +8,17 @@ router.get('/produits', async (req, res) => {
   res.json(produits);
 });
 
+router.get('/produits', async (req, res) => {
+  try {
+    const produits = await Produit.find({ type: 'stock' }).sort({ dateachat: -1 });
+    res.json(produits);
+  } catch (err) {
+    console.error('Erreur lors de la récupération des produits :', err);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+
 // POST un produit
 router.post('/produits', async (req, res) => {
   try {
