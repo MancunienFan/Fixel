@@ -28,10 +28,16 @@ const clientSchema = new mongoose.Schema({
 
 });
 
+clientSchema.virtual('datecreationFormatte').get(function () {
+  return this.dateCreation ? this.dateCreation.toLocaleDateString('fr-FR') : '';
+});
+
 // 🛠️ Middleware pour mettre à jour `dateModification` à chaque modification
 clientSchema.pre('findOneAndUpdate', function (next) {
   this.set({ dateModification: new Date() });
   next();
 });
+
+clientSchema.set('toJSON', { virtuals: true });
 
 module.exports = mongoose.model('Client', clientSchema);

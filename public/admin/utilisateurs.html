@@ -4,34 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <title>Gestion des utilisateurs</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        th,
-        td {
-            border: 1px solid #ccc;
-            padding: 10px;
-            text-align: left;
-        }
-
-        th {
-            background-color: #f4f4f4;
-        }
-    </style>
+      <link rel="stylesheet" href="../style.css">
     <script src="/auth.js"></script>
 
 </head>
 
 <body>
+    <nav id="navbar"></nav>
     <h2>Gestion des utilisateurs</h2>
     <table id="utilisateur-table">
         <thead>
@@ -47,80 +26,8 @@
 
     <button onclick="logout()">Déconnexion</button>
 
-    <script>
-        const token = localStorage.getItem('token');
-        const role = localStorage.getItem('role');
-
-        if (!token || role !== 'admin') {
-            alert("Accès réservé aux administrateurs.");
-            window.location.href = '../login/login.html';
-        }
-
-        fetch('/api/utilisateurs/liste', {
-            headers: { Authorization: 'Bearer ' + token }
-        })
-            .then(res => res.json())
-            .then(utilisateurs => {
-                const tbody = document.querySelector('#utilisateur-table tbody');
-                utilisateurs.forEach(u => {
-                    const row = `<tr>
-    <td>${u.nom}</td>
-    <td>${u.email}</td>
-    <td>
-      <select onchange="changerRole('${u._id}', this.value)">
-        <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>admin</option>
-        <option value="mod" ${u.role === 'mod' ? 'selected' : ''}>mod</option>
-        <option value="consultant" ${u.role === 'consultant' ? 'selected' : ''}>consultant</option>
-      </select>
-    </td>
-    <td>
-      <button onclick="supprimerUtilisateur('${u._id}')">Supprimer</button>
-    </td>
-  </tr>`;
-                    tbody.innerHTML += row;
-                });
-            });
-
-        function logout() {
-            localStorage.removeItem('token');
-            localStorage.removeItem('role');
-            window.location.href = '../login/login.html';
-        }
-
-        async function changerRole(id, role) {
-            const res = await fetch(`/api/utilisateurs/${id}/role`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                },
-                body: JSON.stringify({ role })
-            });
-            if (res.ok) {
-                alert("Rôle mis à jour.");
-            } else {
-                const data = await res.json();
-                alert("Erreur : " + data.erreur);
-            }
-        }
-
-        async function supprimerUtilisateur(id) {
-            if (!confirm("Supprimer cet utilisateur ?")) return;
-
-            const res = await fetch(`/api/utilisateurs/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': 'Bearer ' + token }
-            });
-
-            if (res.ok) {
-                alert("Utilisateur supprimé.");
-                location.reload();
-            } else {
-                const data = await res.json();
-                alert("Erreur : " + data.erreur);
-            }
-        }
-    </script>
+    <script src="utilisateur.js"></script>
+    <script src="../navbar.js"></script>
 </body>
 
 </html>
