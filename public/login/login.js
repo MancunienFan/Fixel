@@ -16,7 +16,7 @@
       if (res.ok) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('role', data.role);
-        alert('Connexion réussie');
+        
         window.location.href = '/index.html';
       } else {
         alert(data.erreur);
