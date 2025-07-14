@@ -3,10 +3,11 @@ const router = express.Router();
 const Produit = require('../models/produitModel');
 
 // GET tous les produits
+/*
 router.get('/produits', async (req, res) => {
   const produits = await Produit.find();
   res.json(produits);
-});
+});*/
 
 router.get('/produits', async (req, res) => {
   try {
