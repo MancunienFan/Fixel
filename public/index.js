@@ -19,30 +19,43 @@ if (navbar) {
 
 
     //en local utiliser : http://localhost:3000/api/produits
-    fetch('/api/produits')
-      .then(res => res.json())
-      .then(produits => {
-        const tbody = document.querySelector('#produitsTable tbody');
-        produits.forEach(produit => {
-          const tr = document.createElement('tr');
-          // const row = document.createElement('tr');
-          tr.style.cursor = 'pointer';
-          tr.onclick = () => {
-            window.location.href = `./produit/produit.html?id=${produit._id}`;
-          };
 
-          tr.innerHTML = `
-            <td>${produit.nom}</td>
-            <td>${produit.statut}</td>
-            <td>${produit.prix} $</td>
-            <td>${produit.disponibilite}</td>
-            <td>${produit.dateachatFormatee}</td>
-            <td>${produit.datemodificationFormatee}</td>
+   let profitTotal = 0;
+const profitTotalSpan = document.getElementById('profitTotal');
 
-          `;
-          tbody.appendChild(tr);
-        });
-      });
+fetch('/api/produits')
+  .then(res => res.json())
+  .then(produits => {
+    const tbody = document.querySelector('#produitsTable tbody');
+    produits.forEach(produit => {
+      const tr = document.createElement('tr');
+      tr.style.cursor = 'pointer';
+      tr.onclick = () => {
+        window.location.href = `./produit/produit.html?id=${produit._id}`;
+      };
+
+      tr.innerHTML = `
+        <td>${produit.nom}</td>
+        <td>${produit.statut}</td>
+        <td>${produit.prix} $</td>
+        <td>${produit.disponibilite}</td>
+        <td>${produit.dateachatFormatee}</td>
+        <td>${produit.datemodificationFormatee}</td>
+      `;
+      tbody.appendChild(tr);
+
+      // 🔢 Calcul profit total
+if (produit.disponibilite && produit.disponibilite.toLowerCase() === "vendu") {
+  const achat = parseFloat(produit.prixachat || 0);
+  const vente = parseFloat(produit.prixvente || 0);
+  profitTotal += (vente - achat);
+}
+
+    });
+
+    profitTotalSpan.textContent = profitTotal.toFixed(2) + " $";
+  });
+
 
     function logout() {
       localStorage.removeItem('token');

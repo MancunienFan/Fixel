@@ -86,20 +86,7 @@ router.delete('/:id', verifierToken(['admin']), async (req, res) => {
 
 //jdid
 
-const jwt = require('jsonwebtoken');
 
-function verifierToken(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ message: 'Token manquant' });
-
-  const token = authHeader.split(' ')[1];
-  jwt.verify(token, process.env.SECRET_KEY, (err, decoded) => {
-    if (err) return res.status(401).json({ message: 'Token invalide ou expiré' });
-
-    req.user = decoded;
-    next();
-  });
-}
 
 module.exports = router;
 
