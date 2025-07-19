@@ -22,3 +22,9 @@
         alert(data.erreur);
       }
     });
+
+    // Exemple de fonction de login réussie, tu reçois un token
+function onLoginSuccess(token) {
+  localStorage.setItem('token', token);  // Stocke le token
+  window.location.href = '/index.html';  // Redirige vers la page principale
+}

@@ -8,10 +8,13 @@
 
    <script src="/auth.js"></script>
 
+
+
 </head>
 
 <body>
   <nav id="navbar"></nav>
+
 
   <h1>Liste des Produits</h1>
   <table id="produitsTable">
@@ -32,6 +35,11 @@
         <script src="index.js"></script>
        <script src="navbar.js"></script>
   <button onclick="window.location.href='./produit/produit.html'">➕ Ajouter un produit</button>
+  <script>
+  window.addEventListener('DOMContentLoaded', () => {
+    checkTokenExpiration();
+  });
+</script>
 </body>
 
 </html>
