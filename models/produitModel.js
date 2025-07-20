@@ -19,7 +19,7 @@ const produitSchema = new mongoose.Schema({
   },
   datevente: {
     type: Date,
-    default: null
+    default: Date.now
   },
   imei: String,
   disponibilite: {
