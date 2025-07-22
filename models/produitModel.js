@@ -29,7 +29,7 @@ const produitSchema = new mongoose.Schema({
   },
   datemodification: {
     type: Date,
-    default: Date.now
+  
   },
   notes: {
     type: String,
