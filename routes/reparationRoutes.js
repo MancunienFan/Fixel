@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Reparation = require('../models/reparationModel');
 const Produit = require('../models/produitModel');
-
+const { ObjectId } = require('mongodb');
 
 //-1 Obtenir toutes les réparations d’un produit
 router.get('/reparations/produit/:id', async (req, res) => {
@@ -53,7 +53,7 @@ router.get('/reparations/:id', async (req, res) => {
   const reparation = await Reparation.findById(req.params.id);
   res.json(reparation);
 });
-
+/*
 // PUT mise à jour
 router.put('/reparations/:id', async (req, res) => {
   try {
@@ -62,7 +62,37 @@ router.put('/reparations/:id', async (req, res) => {
   } catch (err) {
     res.status(500).json({ erreur: err.message });
   }
+});*/
+
+
+
+router.put('/reparations/:id', async (req, res) => {
+  try {
+    const reparationId = req.params.id;
+
+    // Mettre à jour la réparation
+    const reparation = await Reparation.findByIdAndUpdate(
+      reparationId,
+      req.body,
+      { new: true }
+    );
+
+    // Si la réparation a un produit lié, on met à jour la date de modification
+    if (reparation.produit) {
+      await Produit.findByIdAndUpdate(
+        reparation.produit,
+        { datemodification: new Date() }
+      );
+    }
+
+    res.status(200).json({ message: 'Réparation mise à jour avec succès' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erreur: 'Erreur lors de la mise à jour de la réparation' });
+  }
 });
+
+module.exports = router;
 
 // DELETE
 router.delete('/reparations/:id', async (req, res) => {
