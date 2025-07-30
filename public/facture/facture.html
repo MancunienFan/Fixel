@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Créer une Facture - FixEl</title>
+  <link rel="stylesheet" href="/style.css"> <!-- ou adapte selon ton projet -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    form {
+      max-width: 600px;
+      margin: auto;
+      background: #f8f8f8;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    label {
+      font-weight: bold;
+      margin-top: 15px;
+      display: block;
+    }
+
+    select,
+    button {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    h3 {
+      margin-top: 20px;
+    }
+
+    #detailsReparation {
+      background: #fff;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Créer une Facture</h1>
+
+  <form id="factureForm">
+    <!-- Sélection Client -->
+    <label for="clientSelect">Client :</label>
+    <select id="clientSelect">
+      <option value="">-- Sélectionnez un client --</option>
+    </select>
+
+    <!-- Sélection Produit -->
+    <div id="produitContainer" style="display: none;">
+      <label for="produitSelect">Produit :</label>
+      <select id="produitSelect">
+        <option value="">-- Sélectionnez un produit --</option>
+      </select>
+    </div>
+
+    <!-- Sélection Réparation -->
+    <div id="reparationContainer" style="display: none;">
+      <label for="reparationSelect">Réparation :</label>
+      <select id="reparationSelect" multiple size="5">
+        <option value="">-- Sélectionnez une réparation --</option>
+      </select>
+    </div>
+
+    <!-- Détails -->
+    <div id="detailsContainer" style="display: none;">
+      <h3>Détails de la réparation</h3>
+      <p id="detailsReparation"></p>
+    </div>
+
+    <!-- Tu peux ajouter ici un bouton pour générer la facture plus tard -->
+    <!-- <button type="submit">Générer la facture</button> -->
+    <div>
+      <button id="genererPdfBtn" style="display: none;">Générer PDF</button>
+      <div id="checkboxContainer" style="display:none; margin-left: 10px;display: none;">
+
+        <label for="telechargerCheckbox">Télécharger la
+          facture après envoi</label>
+        <input type="checkbox" id="telechargerCheckbox" />
+        <br />
+        <label>
+          <input type="checkbox" id="inclureTaxesCheckbox"  />
+          Inclure les taxes (TPS + TVQ)
+        </label>
+      </div>
+
+    </div>
+
+  </form>
+
+  <script src="facture.js"></script>
+</body>
+
+</html>

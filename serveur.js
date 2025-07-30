@@ -30,6 +30,11 @@ app.use('/api/utilisateurs', utilisateurRoutes);
 const clientRoutes = require('./routes/clientRoutes');
 app.use('/api/clients', clientRoutes);
 
+//FACTURE
+const facturesRoutes = require('./routes/factures');
+app.use('/api/factures', facturesRoutes);
+
+
 
 
 /*
