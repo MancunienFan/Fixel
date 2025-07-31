@@ -15,9 +15,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const genererPdfBtn = document.getElementById('genererPdfBtn');
   const tvaInput = document.getElementById('tvaInput');
   const downloadChecked = document.getElementById('telechargerCheckbox');
-  const inclureTaxesCheckbox  = document.getElementById('inclureTaxesCheckbox');
-  
-  
+  const inclureTaxesCheckbox = document.getElementById('inclureTaxesCheckbox');
+
+
+
   // Masquer initialement le bouton PDF
   genererPdfBtn.style.display = 'none';
 
@@ -101,7 +102,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       detailsContainer.style.display = 'block';
       genererPdfBtn.style.display = 'inline-block';
       document.getElementById('checkboxContainer').style.display = 'inline-block';
-     // telechargerPdfbtn.style.display = 'inline-block';
+      // telechargerPdfbtn.style.display = 'inline-block';
     } else {
       selectedReparations = [];
       detailsContainer.style.display = 'none';
@@ -117,6 +118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const produitId = document.getElementById('produitSelect').value;
     const selectedOptions = Array.from(document.getElementById('reparationSelect').selectedOptions);
     const reparationIds = selectedOptions.map(option => option.value).filter(id => id);
+    const envoyerParMail = document.getElementById('envoyerMailCheckbox').checked;
 
     if (!clientId || !produitId || reparationIds.length === 0) {
       alert("Veuillez sélectionner un client, un produit et au moins une réparation.");
@@ -131,31 +133,32 @@ document.addEventListener('DOMContentLoaded', async () => {
           clientId,
           produitId,
           reparationIds,
-           inclureTaxes: inclureTaxesCheckbox.checked  
+          inclureTaxes: inclureTaxesCheckbox.checked,
+          envoyerParMail 
         })
       });
 
       if (!response.ok) throw new Error("Erreur lors de la création de la facture");
-  // ✅ Télécharger si la case est cochée
-        const result = await response.json();
+      // ✅ Télécharger si la case est cochée
+      const result = await response.json();
 
-    if (downloadChecked.checked) {
-      lastFactureId = result._id;
-       const res = await fetch(`/api/factures/${lastFactureId}/pdf?inclureTaxes=${inclureTaxesCheckbox.checked}`);
-      if (!res.ok) throw new Error("Erreur lors du téléchargement");
+      if (downloadChecked.checked) {
+        lastFactureId = result._id;
+        const res = await fetch(`/api/factures/${lastFactureId}/pdf?inclureTaxes=${inclureTaxesCheckbox.checked}`);
+        if (!res.ok) throw new Error("Erreur lors du téléchargement");
 
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `facture_${lastFactureId }.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    }
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `facture_${lastFactureId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      }
 
-      
+
       alert(result.message || "Facture envoyée avec succès par courriel !");
 
     } catch (err) {
@@ -164,47 +167,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-/*
-// Clic sur le bouton Télécharger la facture
-document.getElementById('telechargerPdfBtn').addEventListener('click', async (e) => {
-  e.preventDefault();
-
-  if (!lastFactureId) {
-    alert("Veuillez d'abord générer une facture.");
-    return;
-  }
-
-  try {
-    // On fait une requête GET pour récupérer le PDF (buffer)
-    const response = await fetch(`/api/factures/${lastFactureId}/pdf`, {
-      method: 'GET'
-    });
-
-    if (!response.ok) throw new Error("Erreur lors du téléchargement de la facture");
-
-    // Récupérer le contenu du PDF sous forme de Blob
-    const blob = await response.blob();
-
-    // Créer un lien temporaire pour forcer le téléchargement
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-
-    // Donner un nom au fichier PDF téléchargé (optionnel)
-    a.download = `facture_${lastFactureId}.pdf`;
-
-    document.body.appendChild(a);
-    a.click();
-
-    // Nettoyer le DOM et libérer l'URL temporaire
-    a.remove();
-    window.URL.revokeObjectURL(url);
-
-  } catch (err) {
-    console.error('Erreur téléchargement PDF :', err);
-    alert("Une erreur est survenue lors du téléchargement de la facture.");
-  }
-});*/
+  /*
+  // Clic sur le bouton Télécharger la facture
+  document.getElementById('telechargerPdfBtn').addEventListener('click', async (e) => {
+    e.preventDefault();
+  
+    if (!lastFactureId) {
+      alert("Veuillez d'abord générer une facture.");
+      return;
+    }
+  
+    try {
+      // On fait une requête GET pour récupérer le PDF (buffer)
+      const response = await fetch(`/api/factures/${lastFactureId}/pdf`, {
+        method: 'GET'
+      });
+  
+      if (!response.ok) throw new Error("Erreur lors du téléchargement de la facture");
+  
+      // Récupérer le contenu du PDF sous forme de Blob
+      const blob = await response.blob();
+  
+      // Créer un lien temporaire pour forcer le téléchargement
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+  
+      // Donner un nom au fichier PDF téléchargé (optionnel)
+      a.download = `facture_${lastFactureId}.pdf`;
+  
+      document.body.appendChild(a);
+      a.click();
+  
+      // Nettoyer le DOM et libérer l'URL temporaire
+      a.remove();
+      window.URL.revokeObjectURL(url);
+  
+    } catch (err) {
+      console.error('Erreur téléchargement PDF :', err);
+      alert("Une erreur est survenue lors du téléchargement de la facture.");
+    }
+  });*/
 
 
 });

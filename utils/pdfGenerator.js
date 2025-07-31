@@ -96,7 +96,6 @@ async function construirePDF(client, produit, reparations, numeroFacture, appliq
   doc.font('Helvetica-Bold');
   doc.text(`Total HT : ${totalHT.toFixed(2)} $ CAD`, startX + 300, y);
   y += 15;
-console.log("appliquer Txes :", appliquerTaxes)
   if (appliquerTaxes) {
     tps = totalHT * 0.05;
     tvq = totalHT * 0.09975;
