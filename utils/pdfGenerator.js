@@ -38,6 +38,7 @@ async function genererPDFDepuisFacture(facture, appliquerTaxes = true) {
   return await createPDFBuffer(doc);
 }
 
+
 // ✅ Fonction réutilisable qui construit le PDF
 async function construirePDF(client, produit, reparations, numeroFacture, appliquerTaxes = true) {
   const doc = new PDFDocument({ margin: 50 });

@@ -134,29 +134,44 @@ document.addEventListener('DOMContentLoaded', async () => {
           produitId,
           reparationIds,
           inclureTaxes: inclureTaxesCheckbox.checked,
-          envoyerParMail 
+          envoyerParMail
         })
       });
 
       if (!response.ok) throw new Error("Erreur lors de la création de la facture");
       // ✅ Télécharger si la case est cochée
       const result = await response.json();
+   if (downloadChecked.checked) {
+  lastFactureId = result._id;
+  const res = await fetch(`/api/factures/${lastFactureId}/pdf?inclureTaxes=${inclureTaxesCheckbox.checked}`);
+  if (!res.ok) throw new Error("Erreur lors du téléchargement");
 
-      if (downloadChecked.checked) {
-        lastFactureId = result._id;
-        const res = await fetch(`/api/factures/${lastFactureId}/pdf?inclureTaxes=${inclureTaxesCheckbox.checked}`);
-        if (!res.ok) throw new Error("Erreur lors du téléchargement");
+  const blob = await res.blob();
 
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `facture_${lastFactureId}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-      }
+  const contentDisposition = res.headers.get("Content-Disposition");
+  console.log("Header Content-Disposition:", contentDisposition); // <== ici
+
+  let filename = `facture_${lastFactureId}.pdf`;  // fallback
+  if (contentDisposition) {
+    const matches = contentDisposition.match(/filename="(.+)"/);
+    if (matches && matches[1]) {
+      filename = matches[1];
+    }
+  }
+  console.log("Nom de fichier choisi:", filename); // <== et ici
+
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+
+
 
 
       alert(result.message || "Facture envoyée avec succès par courriel !");

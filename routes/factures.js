@@ -70,7 +70,9 @@ router.post('/', async (req, res) => {
   if (client.email && pdfBuffer && Buffer.isBuffer(pdfBuffer)) {
     try {
       await envoyerFactureParEmail(client.email, client.nom, pdfBuffer, nomFichier);
-      console.log(`Facture envoyée à ${client.email}`);
+      console.log(`Facture envoyée par mail à ${client.email}`);
+          res.json({ message: 'Facture générée avec succès.', _id: facture._id  });
+
     } catch (err) {
       console.error("Erreur lors de l'envoi de l'email :", err);
       return res.status(500).json({ error: "Erreur lors de l'envoi de l'email." });
@@ -80,10 +82,13 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: "Email du client manquant ou génération PDF échouée." });
   }
 } else {
+    res.json({
+    message: "Facture générée sans envoi par mail",
+    _id: facture._id
+  });
   console.log("Facture générée sans envoi par mail.");
 }
-    // ✅ Réponse sans téléchargement
-    //res.json({ message: 'Facture générée et envoyée par email avec succès.', _id: facture._id  });
+    // ✅ Réponse 
 
   } catch (error) {
     console.error("Erreur facture :", error);
@@ -108,14 +113,14 @@ router.get('/:id/pdf', async (req, res) => {
       facture.numeroFacture,
       appliquerTaxes
     );
-
-    console.log("nom nomFichier:", nomFichier)
-
-    // 👇 Ici, on définit le nom du fichier dans les headers
-    res.set({
+ res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${nomFichier}"`
     });
+    console.log("nom nomFichier:", nomFichier)
+
+    // 👇 Ici, on définit le nom du fichier dans les headers
+   
 
     res.send(pdfBuffer);
   } catch (err) {
