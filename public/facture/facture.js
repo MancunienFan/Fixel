@@ -4,10 +4,16 @@ let selectedProduit = null;
 let selectedReparation = null;
 let lastFactureId = null;
 
+
+
 document.addEventListener('DOMContentLoaded', async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const produitIdDirect = urlParams.get('produitId');
   const clientSelect = document.getElementById('clientSelect');
   const produitSelect = document.getElementById('produitSelect');
   const reparationSelect = document.getElementById('reparationSelect');
+    const clientContainer = document.getElementById('clientContainer');
+
   const produitContainer = document.getElementById('produitContainer');
   const reparationContainer = document.getElementById('reparationContainer');
   const detailsContainer = document.getElementById('detailsContainer');
@@ -16,11 +22,53 @@ document.addEventListener('DOMContentLoaded', async () => {
   const tvaInput = document.getElementById('tvaInput');
   const downloadChecked = document.getElementById('telechargerCheckbox');
   const inclureTaxesCheckbox = document.getElementById('inclureTaxesCheckbox');
+  /** ===================== */
+  if (!produitIdDirect) {
+    genererPdfBtn.style.display = 'none';
+  }
 
 
+
+  if (produitIdDirect) {
+    // Masquer les sélections classiques
+
+    if (clientContainer) clientContainer.style.display = 'none';
+    if (produitSelect) produitSelect.style.display = 'none';
+    if (reparationSelect) reparationSelect.style.display = 'none';
+
+    // Afficher le bouton de génération directement
+
+    if (genererPdfBtn) genererPdfBtn.style.display = 'inline-block';
+
+    // Zone de résumé produit (facultatif mais utile)
+    const resumeProduit = document.getElementById('resume-produit');
+    if (resumeProduit) resumeProduit.style.display = 'block';
+
+    // Charger les données du produit
+    fetch(`/api/produit/${produitIdDirect}`)
+      .then(res => res.json())
+      .then(produit => {
+        selectedProduit = produit;  // important si ta génération l'utilise
+
+        if (resumeProduit) {
+          resumeProduit.innerText = `Produit : ${produit.nom} - ${produit.model} - IMEI: ${produit.imei || 'N/A'} - ${produit.prixvente || produit.prix || '0'} $`;
+        }
+
+        selectedClient = null;
+        selectedReparation = null;
+      })
+      .catch(err => {
+        alert("Erreur lors du chargement du produit.");
+        console.error(err);
+      });
+  }
+
+
+
+  /** ===================== */
 
   // Masquer initialement le bouton PDF
-  genererPdfBtn.style.display = 'none';
+ // genererPdfBtn.style.display = 'none';
 
   // Charger les clients
   const clients = await fetch('/api/clients').then(res => res.json());
@@ -111,76 +159,79 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
 
-  document.getElementById('genererPdfBtn').addEventListener('click', async (e) => {
-    e.preventDefault();
+ document.getElementById('genererPdfBtn').addEventListener('click', async (e) => {
+  e.preventDefault();
 
-    const clientId = document.getElementById('clientSelect').value;
-    const produitId = document.getElementById('produitSelect').value;
-    const selectedOptions = Array.from(document.getElementById('reparationSelect').selectedOptions);
-    const reparationIds = selectedOptions.map(option => option.value).filter(id => id);
-    const envoyerParMail = document.getElementById('envoyerMailCheckbox').checked;
+ // const typeFacture = document.getElementById('typeFacture').value; // ⚠️ Assure-toi que ce select existe
+  const clientId = document.getElementById('clientSelect').value;
+  const produitId = document.getElementById('produitSelect').value;
+  const selectedOptions = Array.from(document.getElementById('reparationSelect').selectedOptions);
+  const reparationIds = selectedOptions.map(option => option.value).filter(id => id);
+  const envoyerParMail = document.getElementById('envoyerMailCheckbox').checked;
+  const inclureTaxes = inclureTaxesCheckbox.checked;
 
-    if (!clientId || !produitId || reparationIds.length === 0) {
-      alert("Veuillez sélectionner un client, un produit et au moins une réparation.");
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/factures', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientId,
-          produitId,
-          reparationIds,
-          inclureTaxes: inclureTaxesCheckbox.checked,
-          envoyerParMail
-        })
-      });
-
-      if (!response.ok) throw new Error("Erreur lors de la création de la facture");
-      // ✅ Télécharger si la case est cochée
-      const result = await response.json();
-   if (downloadChecked.checked) {
-  lastFactureId = result._id;
-  const res = await fetch(`/api/factures/${lastFactureId}/pdf?inclureTaxes=${inclureTaxesCheckbox.checked}`);
-  if (!res.ok) throw new Error("Erreur lors du téléchargement");
-
-  const blob = await res.blob();
-
-  const contentDisposition = res.headers.get("Content-Disposition");
-  console.log("Header Content-Disposition:", contentDisposition); // <== ici
-
-  let filename = `facture_${lastFactureId}.pdf`;  // fallback
-  if (contentDisposition) {
-    const matches = contentDisposition.match(/filename="(.+)"/);
-    if (matches && matches[1]) {
-      filename = matches[1];
-    }
+  // ✅ Si c’est une vente → Appel direct à la fonction
+if (selectedProduit && (!clientId || clientId === "") && reparationIds.length === 0) {
+    genererFactureVentePDF(inclureTaxes); // tu dois avoir défini cette fonction ailleurs
+    return;
   }
-  console.log("Nom de fichier choisi:", filename); // <== et ici
 
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.URL.revokeObjectURL(url);
-}
+  // ✅ Si c’est une réparation → on continue avec la logique actuelle
+  if (!clientId || !produitId || reparationIds.length === 0) {
+    alert("Veuillez sélectionner un client, un produit et au moins une réparation.");
+    return;
+  }
 
+  try {
+    const response = await fetch('/api/factures', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clientId,
+        produitId,
+        reparationIds,
+        inclureTaxes,
+        envoyerParMail
+      })
+    });
 
+    if (!response.ok) throw new Error("Erreur lors de la création de la facture");
+    const result = await response.json();
 
+    if (downloadChecked.checked) {
+      lastFactureId = result._id;
+      const res = await fetch(`/api/factures/${lastFactureId}/pdf?inclureTaxes=${inclureTaxes}`);
+      if (!res.ok) throw new Error("Erreur lors du téléchargement");
 
+      const blob = await res.blob();
+      const contentDisposition = res.headers.get("Content-Disposition");
 
-      alert(result.message || "Facture envoyée avec succès par courriel !");
+      let filename = `facture_${lastFactureId}.pdf`;
+      if (contentDisposition) {
+        const matches = contentDisposition.match(/filename="(.+)"/);
+        if (matches && matches[1]) {
+          filename = matches[1];
+        }
+      }
 
-    } catch (err) {
-      console.error('Erreur PDF :', err);
-      alert("Une erreur est survenue lors de l'envoi de la facture.");
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
     }
-  });
+
+    alert(result.message || "Facture envoyée avec succès par courriel !");
+
+  } catch (err) {
+    console.error('Erreur PDF :', err);
+    alert("Une erreur est survenue lors de l'envoi de la facture.");
+  }
+});
+
 
   /*
   // Clic sur le bouton Télécharger la facture
@@ -223,6 +274,32 @@ document.addEventListener('DOMContentLoaded', async () => {
       alert("Une erreur est survenue lors du téléchargement de la facture.");
     }
   });*/
+  async function genererFactureVentePDF(inclureTaxes) {
+
+
+  const res = await fetch('/api/factures/vente/pdf', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      produit: selectedProduit,
+      taxes: inclureTaxes
+    })
+  });
+
+  if (res.ok) {
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'facture_vente.pdf';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } else {
+    const data = await res.json();
+    alert(data.message || "Erreur lors de la génération de la facture.");
+  }
+}
+
 
 
 });

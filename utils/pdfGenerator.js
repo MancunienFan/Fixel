@@ -1,6 +1,8 @@
 require('dotenv').config();
 const FIXEL_EMAIL = process.env.FIXEL_EMAIL || "serviceclient.fixel@gmail.com";
 
+//const { PDFDocumentLib, rgb, StandardFonts } = require('pdf-lib'); // ou selon ta lib actuelle
+const { generateFactureNumber } = require('./helpers'); // si tu en as un
 const PDFDocument = require('pdfkit');
 
 // Fonction pour créer un buffer depuis un PDFDoc
@@ -134,7 +136,53 @@ async function construirePDF(client, produit, reparations, numeroFacture, appliq
   };
 }
 
+
+
+
+function generateVentePDF(produit, taxes) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    const chunks = [];
+
+    doc.on('data', (chunk) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', (err) => reject(err));
+
+    doc.fontSize(20).text('FixEl - Facture Vente', { align: 'center' });
+    doc.moveDown();
+
+    doc.fontSize(12).text(`Produit : ${produit.nom}`);
+    doc.text(`Modèle : ${produit.model || '-'}`);
+    doc.text(`IMEI : ${produit.imei || '-'}`);
+    doc.text(`Prix unitaire : ${produit.prixvente} $ CAD`);
+    doc.moveDown();
+
+    let total = parseFloat(produit.prixvente);
+    let totalTaxes = 0;
+
+    if (taxes) {
+      const tps = +(total * 0.05).toFixed(2);
+      doc.text(`TPS (5%) : ${tps} $`);
+      totalTaxes += tps;
+      const tvq = +(total * 0.09975).toFixed(2);
+      doc.text(`TVQ (9.975%) : ${tvq} $`);
+      totalTaxes += tvq;
+    }
+
+    doc.moveDown();
+    doc.text(`Total : ${(total + totalTaxes).toFixed(2)} $ CAD`);
+    doc.moveDown();
+
+    doc.text('Merci pour votre achat !', { align: 'center' });
+    doc.text('Contact : fixel@entreprise.ca', { align: 'center' });
+
+    doc.end();
+  });
+}
+
+
 module.exports = {
   genererPDF,
-  genererPDFDepuisFacture
+  genererPDFDepuisFacture,
+  generateVentePDF
 };

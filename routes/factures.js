@@ -4,7 +4,7 @@ const router = express.Router();
 const mongoose = require('mongoose');
 
 const Facture = require('../models/Facture');
-const { genererPDF, genererPDFDepuisFacture } = require('../utils/pdfGenerator');
+const { genererPDF, generateVentePDF } = require('../utils/pdfGenerator');
 const envoyerFactureParEmail = require('../utils/emailSender');
 
 const Client = require('../models/clientModel');
@@ -126,6 +126,33 @@ router.get('/:id/pdf', async (req, res) => {
   } catch (err) {
     console.error("Erreur téléchargement PDF :", err);
     res.status(500).send("Erreur serveur");
+  }
+});
+
+router.post('/vente/pdf', async (req, res) => {
+  try {
+    const { produit, taxes } = req.body;
+
+    if (!produit || !produit.nom || !produit.prixvente) {
+      return res.status(400).json({ message: 'Produit invalide pour la facture.' });
+    }
+
+    // Appel du générateur PDF sans enregistrement
+    const pdfBuffer = await generateVentePDF(produit, taxes);
+
+    // Définir un nom de fichier propre
+    const fileName = `facture_vente_${produit.nom.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${fileName}"`
+    });
+
+    res.send(pdfBuffer);
+
+  } catch (err) {
+    console.error('Erreur génération facture vente :', err);
+    res.status(500).json({ message: 'Erreur lors de la génération du PDF (vente).' });
   }
 });
 

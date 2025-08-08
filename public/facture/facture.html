@@ -54,11 +54,12 @@
 
   <form id="factureForm">
     <!-- Sélection Client -->
-    <label for="clientSelect">Client :</label>
-    <select id="clientSelect">
-      <option value="">-- Sélectionnez un client --</option>
-    </select>
-
+    <div id="clientContainer" "><
+    <label for=" clientSelect">Client :</label>
+      <select id="clientSelect">
+        <option value="">-- Sélectionnez un client --</option>
+      </select>
+    </div>
     <!-- Sélection Produit -->
     <div id="produitContainer" style="display: none;">
       <label for="produitSelect">Produit :</label>
@@ -80,6 +81,8 @@
       <h3>Détails de la réparation</h3>
       <p id="detailsReparation"></p>
     </div>
+
+    <div id="resume-produit" style="margin-top: 1rem; display: none; font-weight: bold;"></div>
 
     <!-- Tu peux ajouter ici un bouton pour générer la facture plus tard -->
     <!-- <button type="submit">Générer la facture</button> -->
