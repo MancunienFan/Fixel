@@ -6,10 +6,10 @@
   <title>Produit</title>
   <link rel="stylesheet" href="../style.css">
   <script src="/auth.js"></script>
-<div id="navbar"></div>
 </head>
 
 <body>
+  <nav id="navbar"></nav>
 
   <div class="container">
    
@@ -94,15 +94,14 @@
 </div>
 
       <label style="grid-column: 1 / -1;">Notes
-        <textarea name="notes" rows="4"
-          style="width: 100%; resize: vertical; padding: 0.6rem; font-size: 1rem; border-radius: 6px; border: 1px solid #ccc; margin-top: 5px;"></textarea>
+        <textarea name="notes" rows="4"></textarea>
       </label>
 
       <div class="actions">
         <button type="submit" id="submit">✅ Enregistrer</button>
         <button type="button" onclick="window.location.href='../../index.html'">⬅️ Retour</button>
-        <button type="button" id="btn-update" style="background-color: #ffc107; color: black;">✏️ Mise à jour</button>
-        <button type="button" id="btn-delete" style="background-color: #dc3545; color: white;">🗑️ Effacer</button>
+        <button type="button" id="btn-update" class="btn-warning">✏️ Mise à jour</button>
+        <button type="button" id="btn-delete" class="btn-danger">🗑️ Effacer</button>
         <button type="button" id="btn-ajouter-reparation">➕ Ajouter réparation</button>
       </div>
 

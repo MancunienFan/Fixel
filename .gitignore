@@ -1,3 +1,6 @@
 factures/
 node_modules/
 .env
+*.zip
+fixel.onrender.com/
+localhost%3A3000/

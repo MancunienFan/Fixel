@@ -4,51 +4,100 @@
 <head>
   <meta charset="UTF-8">
   <title>Produits - FixEl</title>
-    <link rel="stylesheet" href="style.css">
-
-   <script src="/auth.js"></script>
-
-
-
+  <link rel="stylesheet" href="style.css">
+  <script src="/auth.js"></script>
 </head>
 
 <body>
   <nav id="navbar"></nav>
 
-<div class="container"> 
-  <h1>Liste des Produits</h1>
-  <table id="produitsTable">
-    <thead>
-      <tr>
-        <th>Produit</th>
-        <th>État</th>
-        <th>Prix</th>
-        <th>Disponibilité</th>
-        <th>date d'achat</th>
-        <th>Mise à jour</th>
-        
-      </tr>
-    </thead>
-    <tbody></tbody>
-      <tfoot>
-    <tr>
-      <td colspan="6" style="text-align:right; font-weight: bold;">
-        Profit total : <span id="profitTotal">0 $</span>
-      </td>
-    </tr>
-  </tfoot>
+  <div class="container">
+    <h1>Liste des Produits</h1>
 
-  </table>
-</div>
+    <section class="filters-panel" aria-label="Filtres des produits">
+      <label>Statut
+        <select id="filtreStatut">
+          <option value="">Tous</option>
+          <option value="disponible">Disponible</option>
+          <option value="vendu">Vendu</option>
+          <option value="pieces">Pour pièces</option>
+        </select>
+      </label>
 
-        <script src="index.js"></script>
-       <script src="navbar.js"></script>
-  <button onclick="window.location.href='./produit/produit.html'">➕ Ajouter un produit</button>
+      <label>Date à filtrer
+        <select id="filtreDateType">
+          <option value="dateachat">Date d'achat</option>
+          <option value="datevente">Date de vente</option>
+          <option value="datemodification">Mise à jour</option>
+        </select>
+      </label>
+
+      <label>Année
+        <input type="number" id="filtreAnnee" min="2000" max="2100" placeholder="Ex. 2026">
+      </label>
+
+      <label>De
+        <input type="date" id="filtreDateDebut">
+      </label>
+
+      <label>À
+        <input type="date" id="filtreDateFin">
+      </label>
+
+      <div class="filter-actions">
+        <button type="button" id="btnFiltre2026">2026</button>
+        <button type="button" id="btnResetFiltres">Réinitialiser</button>
+      </div>
+    </section>
+
+    <p class="table-summary">
+      Produits affichés : <strong id="produitsCount">0</strong>
+    </p>
+
+    <div class="table-container">
+      <table id="produitsTable">
+        <thead>
+          <tr>
+            <th>Produit</th>
+            <th>État</th>
+            <th>
+              <button type="button" class="sort-header" data-sort="prix">Prix <span class="sort-indicator"></span></button>
+            </th>
+            <th>Disponibilité</th>
+            <th>
+              <button type="button" class="sort-header" data-sort="dateachat">Date d'achat <span class="sort-indicator"></span></button>
+            </th>
+            <th>
+              <button type="button" class="sort-header" data-sort="datevente">Date de vente <span class="sort-indicator"></span></button>
+            </th>
+            <th>
+              <button type="button" class="sort-header" data-sort="datemodification">Mise à jour <span class="sort-indicator"></span></button>
+            </th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="7" style="text-align:right; font-weight: bold;">
+              Profit total : <span id="profitTotal">0 $</span>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <div class="page-actions">
+    <button onclick="window.location.href='./produit/produit.html'">Ajouter un produit</button>
+  </div>
+
+  <script src="index.js"></script>
+  <script src="navbar.js"></script>
   <script>
-  window.addEventListener('DOMContentLoaded', () => {
-    checkTokenExpiration();
-  });
-</script>
+    window.addEventListener('DOMContentLoaded', () => {
+      checkTokenExpiration();
+    });
+  </script>
 </body>
 
 </html>

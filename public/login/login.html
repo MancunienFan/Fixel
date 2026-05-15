@@ -2,15 +2,21 @@
 <html>
 <head>
   <title>Connexion</title>
-  <link rel="stylesheet" href="login.css">
+  <link rel="stylesheet" href="../style.css">
 </head>
-<body>
-  <h2>Connexion</h2>
+<body class="login-page">
+  <div class="container">
+  <h1>Connexion</h1>
   <form id="login-form">
-    <input type="email" id="email" placeholder="Email" required><br>
-    <input type="password" id="motdepasse" placeholder="Mot de passe" required><br>
+    <label>Email
+      <input type="email" id="email" placeholder="Email" required>
+    </label>
+    <label>Mot de passe
+      <input type="password" id="motdepasse" placeholder="Mot de passe" required>
+    </label>
     <button type="submit">Connexion</button>
   </form>
+  </div>
 
   <script src="login.js"></script>
 </body>
