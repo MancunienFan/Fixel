@@ -34,6 +34,10 @@ app.use('/api/clients', clientRoutes);
 const facturesRoutes = require('./routes/factures');
 app.use('/api/factures', facturesRoutes);
 
+//Tableau de bord
+const dashboardRoutes = require('./routes/dashboardRoutes');
+app.use('/api/dashboard', dashboardRoutes);
+
 
 
 

@@ -13,6 +13,7 @@ window.addEventListener("DOMContentLoaded", () => {
   navbar.innerHTML = `
     <div class="navbar-links">
       <a href="/index.html">Accueil</a>
+      ${role === 'admin' ? '<a href="/dashboard/dashboard.html">Tableau de bord</a>' : ''}
       ${role === 'admin' ? '<a href="/admin/utilisateurs.html">Utilisateurs</a>' : ''}
       ${role === 'admin' ? '<a href="/client/clients.html">Clients</a>' : ''}
       ${role === 'admin' ? '<a href="/produit/produit.html">Produits</a>' : ''}
