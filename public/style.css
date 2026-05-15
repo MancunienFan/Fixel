@@ -428,6 +428,260 @@ tfoot td {
   font-size: 14px;
 }
 
+.table-link-button {
+  min-height: 34px;
+  padding: 7px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  background: var(--primary);
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+.table-link-button:hover {
+  color: #ffffff;
+  background: var(--primary-hover);
+  text-decoration: none;
+}
+
+.dashboard-container {
+  width: min(1280px, calc(100% - 32px));
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.metric-card {
+  min-height: 112px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.metric-card strong {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.metric-label {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.metric-card-profit {
+  border-color: rgba(22, 163, 74, 0.45);
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin: 24px 0;
+}
+
+.chart-panel {
+  padding: 18px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.chart-panel h2 {
+  margin-bottom: 16px;
+  font-size: 18px;
+}
+
+.chart-panel-wide {
+  grid-column: 1 / -1;
+}
+
+.bar-chart {
+  min-height: 250px;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(74px, 1fr));
+  gap: 14px;
+  align-items: end;
+  padding: 14px 4px 0;
+  overflow-x: auto;
+}
+
+.chart-month {
+  min-width: 74px;
+  display: grid;
+  gap: 8px;
+  text-align: center;
+}
+
+.chart-bars {
+  height: 170px;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.bar {
+  width: 18px;
+  min-height: 4px;
+  display: block;
+  border-radius: 5px 5px 0 0;
+}
+
+.bar-ca {
+  background: var(--primary);
+}
+
+.bar-profit {
+  background: var(--success);
+}
+
+.chart-month strong {
+  min-height: 34px;
+  color: var(--label);
+  font-size: 13px;
+}
+
+.chart-month small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.chart-legend {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.chart-legend i {
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+  border-radius: 3px;
+}
+
+.legend-ca {
+  background: var(--primary);
+}
+
+.legend-profit {
+  background: var(--success);
+}
+
+.status-chart {
+  display: grid;
+  gap: 14px;
+}
+
+.status-chart-row {
+  display: grid;
+  gap: 7px;
+}
+
+.status-chart-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.status-chart-label span {
+  color: var(--label);
+}
+
+.status-chart-track {
+  height: 12px;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.status-chart-track span {
+  height: 100%;
+  display: block;
+  background: var(--primary);
+  border-radius: inherit;
+}
+
+.empty-chart {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.dashboard-summary,
+.dashboard-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  margin-top: 24px;
+}
+
+.summary-list {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.summary-list div {
+  padding: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.summary-list dt {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.summary-list dd {
+  margin: 0;
+  font-weight: 800;
+}
+
+.alert-list {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  list-style: none;
+}
+
+.alert-list li {
+  padding: 14px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--warning);
+  border-radius: var(--radius);
+  font-weight: 700;
+}
+
 .status-select {
   min-height: 34px;
   padding: 6px 8px;
@@ -613,6 +867,16 @@ tfoot td {
   .page-actions,
   .section-header {
     flex-direction: column;
+  }
+
+  .dashboard-summary,
+  .dashboard-columns,
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bar-chart {
+    grid-template-columns: repeat(6, minmax(86px, 1fr));
   }
 
   th,

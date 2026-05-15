@@ -1,23 +1,27 @@
-window.addEventListener('DOMContentLoaded', () => {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'scroll-top-button';
-  button.setAttribute('aria-label', 'Remonter en haut de page');
-  button.textContent = '↑';
+(function initialiserScrollTop() {
+  window.addEventListener('DOMContentLoaded', () => {
+    if (document.querySelector('.scroll-top-button')) return;
 
-  document.body.appendChild(button);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'scroll-top-button';
+    button.setAttribute('aria-label', 'Remonter en haut de page');
+    button.textContent = '↑';
 
-  const toggleVisibility = () => {
-    button.classList.toggle('visible', window.scrollY > 300);
-  };
-
-  button.addEventListener('click', () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
+    button.addEventListener('click', () => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
     });
-  });
 
-  window.addEventListener('scroll', toggleVisibility, { passive: true });
-  toggleVisibility();
-});
+    document.body.appendChild(button);
+
+    const toggleVisibility = () => {
+      button.classList.toggle('visible', window.scrollY > 300);
+    };
+
+    toggleVisibility();
+    window.addEventListener('scroll', toggleVisibility, { passive: true });
+  });
+})();

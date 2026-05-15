@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Tableau de bord - FixEl</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/auth.js"></script>
+</head>
+
+<body>
+  <nav id="navbar"></nav>
+
+  <main class="container dashboard-container">
+    <div class="section-header">
+      <div>
+        <h1>Tableau de bord</h1>
+        <p class="section-subtitle">Vue rapide de l'activite, des reparations et des factures.</p>
+      </div>
+      <button type="button" id="btnRefreshDashboard">Actualiser</button>
+    </div>
+
+    <section class="dashboard-grid" aria-label="Indicateurs principaux">
+      <article class="metric-card">
+        <span class="metric-label">Produits disponibles</span>
+        <strong id="produitsDisponibles">0</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Produits vendus</span>
+        <strong id="produitsVendus">0</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Reparations actives</span>
+        <strong id="reparationsActives">0</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Factures impayees</span>
+        <strong id="facturesImpayees">0</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">CA du mois</span>
+        <strong id="caMois">0 $</strong>
+      </article>
+      <article class="metric-card metric-card-profit">
+        <span class="metric-label">Profit total</span>
+        <strong id="profitTotalDashboard">0 $</strong>
+      </article>
+    </section>
+
+    <section class="charts-grid" aria-label="Graphiques du tableau de bord">
+      <article class="chart-panel chart-panel-wide">
+        <h2>Ventes et profit par mois</h2>
+        <div id="ventesProfitChart" class="bar-chart grouped-bar-chart"></div>
+        <div class="chart-legend">
+          <span><i class="legend-ca"></i> Chiffre d'affaires</span>
+          <span><i class="legend-profit"></i> Profit</span>
+        </div>
+      </article>
+
+      <article class="chart-panel">
+        <h2>Reparations par statut</h2>
+        <div id="reparationsStatutChart" class="status-chart"></div>
+      </article>
+
+      <article class="chart-panel">
+        <h2>Factures par statut</h2>
+        <div id="facturesStatutChart" class="status-chart"></div>
+      </article>
+
+      <article class="chart-panel">
+        <h2>Stock</h2>
+        <div id="stockStatutChart" class="status-chart"></div>
+      </article>
+    </section>
+
+    <section class="dashboard-summary">
+      <div>
+        <h2>Finance</h2>
+        <dl class="summary-list">
+          <div><dt>Chiffre d'affaires total</dt><dd id="caTotal">0 $</dd></div>
+          <div><dt>Factures payees</dt><dd id="facturesPayeesMontant">0 $</dd></div>
+          <div><dt>Factures a encaisser</dt><dd id="facturesImpayeesMontant">0 $</dd></div>
+        </dl>
+      </div>
+
+      <div>
+        <h2>Stock a surveiller</h2>
+        <ul class="alert-list" id="stockAlertes"></ul>
+      </div>
+    </section>
+
+    <section class="dashboard-columns">
+      <div>
+        <h2>Reparations a traiter</h2>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Produit</th>
+                <th>Client</th>
+                <th>Date</th>
+                <th>Statut</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="reparationsDashboardBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div>
+        <h2>Dernieres factures</h2>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Numero</th>
+                <th>Client</th>
+                <th>Total</th>
+                <th>Statut</th>
+                <th>PDF</th>
+              </tr>
+            </thead>
+            <tbody id="facturesDashboardBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/dashboard/dashboard.js"></script>
+  <script src="/navbar.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      checkTokenExpiration();
+    });
+  </script>
+</body>
+
+</html>
