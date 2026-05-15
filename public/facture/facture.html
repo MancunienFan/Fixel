@@ -3,75 +3,122 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Créer une Facture - FixEl</title>
-  <link rel="stylesheet" href="../style.css"> <!-- ou adapte selon ton projet -->
- 
+  <title>Factures - FixEl</title>
+  <link rel="stylesheet" href="../style.css">
+  <script src="/auth.js"></script>
 </head>
 
 <body>
-    <nav id="navbar"></nav>
+  <nav id="navbar"></nav>
 
   <div class="container">
+    <h1>Créer une facture</h1>
 
-  <h1>Créer une Facture</h1>
+    <form id="factureForm">
+      <label>Client
+        <select id="clientSelect" required>
+          <option value="">-- Sélectionnez un client --</option>
+        </select>
+      </label>
 
-  <form id="factureForm">
-    <!-- Sélection Client -->
-    <label for="clientSelect">Client :</label>
-    <select id="clientSelect">
-      <option value="">-- Sélectionnez un client --</option>
-    </select>
+      <label id="produitContainer" style="display: none;">Produit
+        <select id="produitSelect" required>
+          <option value="">-- Sélectionnez un produit --</option>
+        </select>
+      </label>
 
-    <!-- Sélection Produit -->
-    <div id="produitContainer" style="display: none;">
-      <label for="produitSelect">Produit :</label>
-      <select id="produitSelect">
-        <option value="">-- Sélectionnez un produit --</option>
-      </select>
-    </div>
+      <label id="reparationContainer" style="display: none;">Réparations
+        <select id="reparationSelect" multiple size="5" required>
+          <option value="">-- Sélectionnez une réparation --</option>
+        </select>
+      </label>
 
-    <!-- Sélection Réparation -->
-    <div id="reparationContainer" style="display: none;">
-      <label for="reparationSelect">Réparation :</label>
-      <select id="reparationSelect" multiple size="5">
-        <option value="">-- Sélectionnez une réparation --</option>
-      </select>
-    </div>
-
-    <!-- Détails -->
-    <div id="detailsContainer" style="display: none;">
-      <h3>Détails de la réparation</h3>
-      <p id="detailsReparation"></p>
-    </div>
-
-    <!-- Tu peux ajouter ici un bouton pour générer la facture plus tard -->
-    <!-- <button type="submit">Générer la facture</button> -->
-    <div>
-      <button id="genererPdfBtn" style="display: none;">Générer PDF</button>
-      <div id="checkboxContainer" style="display:none; margin-left: 10px;display: none;">
-
-        <label for="telechargerCheckbox">Télécharger la
-          facture après envoi</label>
-        <input type="checkbox" id="telechargerCheckbox" />
-        <br />
-        <label>
-          <input type="checkbox" id="inclureTaxesCheckbox" />
-          Inclure les taxes (TPS + TVQ)
-        </label>
-        <br />
-        <label>
-          <input type="checkbox" id="envoyerMailCheckbox" />
-          Envoyer la facture par email
-        </label>
-
+      <div id="detailsContainer" style="display: none;">
+        <h3>Détails</h3>
       </div>
 
+      <div id="checkboxContainer" class="invoice-options" style="display: none;">
+        <label>
+          <input type="checkbox" id="telechargerCheckbox">
+          Télécharger la facture après création
+        </label>
+        <label>
+          <input type="checkbox" id="inclureTaxesCheckbox">
+          Inclure les taxes TPS + TVQ
+        </label>
+        <label>
+          <input type="checkbox" id="envoyerMailCheckbox">
+          Envoyer la facture par email
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="genererPdfBtn" type="submit" style="display: none;">Créer la facture</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="container">
+    <div class="section-header">
+      <div>
+        <h2>Factures</h2>
+        <p class="section-subtitle">Historique, téléchargement et suivi des paiements.</p>
+      </div>
+      <button type="button" id="btnRefreshFactures">Actualiser</button>
     </div>
 
-  </form>
+    <section class="filters-panel" aria-label="Recherche de factures">
+      <label>No de facture
+        <input type="search" id="rechercheNumeroFacture" placeholder="Ex. 1024">
+      </label>
+
+      <label>Nom client
+        <input type="search" id="rechercheClientFacture" placeholder="Nom ou prénom">
+      </label>
+
+      <label>Du
+        <input type="date" id="rechercheDateDebut">
+      </label>
+
+      <label>Au
+        <input type="date" id="rechercheDateFin">
+      </label>
+
+      <div class="filter-actions">
+        <button type="button" id="btnResetRechercheFactures">Réinitialiser</button>
+      </div>
+    </section>
+
+    <p class="table-summary">
+      Factures affichées : <strong id="facturesCount">0</strong>
+    </p>
+
+    <div class="table-container">
+      <table id="facturesTable">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Client</th>
+            <th>Produit</th>
+            <th>Date</th>
+            <th>Total</th>
+            <th>Statut</th>
+            <th>Email</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="8">Chargement des factures...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
+
   <script src="facture.js"></script>
   <script src="../navbar.js"></script>
+  <script src="../scrollTop.js"></script>
 </body>
 
 </html>

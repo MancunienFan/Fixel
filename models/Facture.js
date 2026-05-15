@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const factureSchema = new mongoose.Schema({
-   numeroFacture: {
+  numeroFacture: {
     type: Number,
     unique: true,
   },
@@ -9,11 +9,30 @@ const factureSchema = new mongoose.Schema({
   produit: { type: mongoose.Schema.Types.ObjectId, ref: 'Produit', required: true },
   reparations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Reparation', required: true }],
   date: { type: Date, default: Date.now },
+  dateEmission: { type: Date, default: Date.now },
+  datePaiement: Date,
+  statut: {
+    type: String,
+    enum: ['emise', 'envoyee', 'payee', 'annulee'],
+    default: 'emise'
+  },
+  inclureTaxes: {
+    type: Boolean,
+    default: false
+  },
+  envoyeeParEmail: {
+    type: Boolean,
+    default: false
+  },
+  dateEnvoiEmail: Date,
+  emailDestinataire: String,
+  modePaiement: String,
+  notes: String,
   tps: Number,
   tvq: Number,
   totalHT: Number,
   totalTTC: Number,
-  fichierPDF: String // chemin vers le fichier généré
+  fichierPDF: String
 });
 
 const Counter = require('./Counter');
@@ -29,6 +48,5 @@ factureSchema.pre('save', async function (next) {
   }
   next();
 });
-
 
 module.exports = mongoose.model('Facture', factureSchema);

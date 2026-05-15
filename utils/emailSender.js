@@ -4,16 +4,13 @@ const mailjet = require('node-mailjet')
 
 const envoyerFacture = async (destinataireEmail, nomClient, pdfBuffer, nomFichierPDF) => {
   if (!process.env.EMAIL_FROM || !process.env.EMAIL_NAME) {
-    console.error("Variables d'environnement EMAIL_FROM ou EMAIL_NAME manquantes.");
-    return;
+    throw new Error("Variables d'environnement EMAIL_FROM ou EMAIL_NAME manquantes.");
   }
   if (!destinataireEmail) {
-    console.error("Email destinataire manquant.");
-    return;
+    throw new Error("Email destinataire manquant.");
   }
   if (!pdfBuffer || !Buffer.isBuffer(pdfBuffer)) {
-    console.error("pdfBuffer est manquant ou n'est pas un Buffer valide.");
-    return;
+    throw new Error("pdfBuffer est manquant ou n'est pas un Buffer valide.");
   }
 
   // Optionnel : s'assurer que nomFichierPDF finit par .pdf
@@ -59,6 +56,7 @@ const envoyerFacture = async (destinataireEmail, nomClient, pdfBuffer, nomFichie
     } else {
       console.error("Erreur d'envoi de l'email :", err);
     }
+    throw err;
   }
 };
 

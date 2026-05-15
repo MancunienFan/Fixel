@@ -1,8 +1,5 @@
-// Variables pour stocker les objets sélectionnés
-let selectedClient = null;
-let selectedProduit = null;
-let selectedReparation = null;
-let lastFactureId = null;
+let clientsCache = [];
+let facturesCache = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
   const clientSelect = document.getElementById('clientSelect');
@@ -11,119 +8,139 @@ document.addEventListener('DOMContentLoaded', async () => {
   const produitContainer = document.getElementById('produitContainer');
   const reparationContainer = document.getElementById('reparationContainer');
   const detailsContainer = document.getElementById('detailsContainer');
-  const detailsReparation = document.getElementById('detailsReparation');
   const genererPdfBtn = document.getElementById('genererPdfBtn');
-  const tvaInput = document.getElementById('tvaInput');
   const downloadChecked = document.getElementById('telechargerCheckbox');
   const inclureTaxesCheckbox = document.getElementById('inclureTaxesCheckbox');
+  const envoyerMailCheckbox = document.getElementById('envoyerMailCheckbox');
+  const checkboxContainer = document.getElementById('checkboxContainer');
+  const facturesTableBody = document.querySelector('#facturesTable tbody');
+  const btnRefreshFactures = document.getElementById('btnRefreshFactures');
+  const rechercheNumeroFacture = document.getElementById('rechercheNumeroFacture');
+  const rechercheClientFacture = document.getElementById('rechercheClientFacture');
+  const rechercheDateDebut = document.getElementById('rechercheDateDebut');
+  const rechercheDateFin = document.getElementById('rechercheDateFin');
+  const btnResetRechercheFactures = document.getElementById('btnResetRechercheFactures');
 
+  await Promise.all([
+    chargerClients(clientSelect),
+    chargerFactures(facturesTableBody)
+  ]);
 
+  btnRefreshFactures.addEventListener('click', () => chargerFactures(facturesTableBody));
 
-  // Masquer initialement le bouton PDF
-  genererPdfBtn.style.display = 'none';
+  [
+    rechercheNumeroFacture,
+    rechercheClientFacture,
+    rechercheDateDebut,
+    rechercheDateFin
+  ].forEach(input => {
+    input.addEventListener('input', () => afficherFacturesFiltrees(facturesTableBody));
+    input.addEventListener('change', () => afficherFacturesFiltrees(facturesTableBody));
+  });
 
-  // Charger les clients
-  const clients = await fetch('/api/clients').then(res => res.json());
-
-  clients.forEach(c => {
-    const option = document.createElement('option');
-    option.value = c._id;
-    option.textContent = `${c.nom} ${c.prenom}`;
-    clientSelect.appendChild(option);
+  btnResetRechercheFactures.addEventListener('click', () => {
+    rechercheNumeroFacture.value = '';
+    rechercheClientFacture.value = '';
+    rechercheDateDebut.value = '';
+    rechercheDateFin.value = '';
+    afficherFacturesFiltrees(facturesTableBody);
   });
 
   clientSelect.addEventListener('change', async () => {
     const clientId = clientSelect.value;
-    selectedClient = clients.find(c => c._id === clientId);
 
     produitSelect.innerHTML = '<option value="">-- Sélectionnez un produit --</option>';
     reparationSelect.innerHTML = '<option value="">-- Sélectionnez une réparation --</option>';
     produitContainer.style.display = 'none';
     reparationContainer.style.display = 'none';
     detailsContainer.style.display = 'none';
+    checkboxContainer.style.display = 'none';
     genererPdfBtn.style.display = 'none';
-    selectedProduit = null;
-    selectedReparation = null;
 
-    if (clientId) {
-      const produits = await fetch(`/api/produits/client/${clientId}`).then(res => res.json());
-      produits.forEach(p => {
-        const option = document.createElement('option');
-        option.value = p._id;
-        option.textContent = `${p.nom} (${p.imei || p.modele})`;
-        produitSelect.appendChild(option);
-      });
-      produitContainer.style.display = 'block';
-    }
+    if (!clientId) return;
+
+    const produits = await fetch(`/api/produits/client/${clientId}`).then(res => res.json());
+    produits.forEach(p => {
+      const option = document.createElement('option');
+      option.value = p._id;
+      option.textContent = `${p.nom || 'Produit'} (${p.imei || p.model || 'sans IMEI'})`;
+      produitSelect.appendChild(option);
+    });
+
+    produitContainer.style.display = 'flex';
   });
 
   produitSelect.addEventListener('change', async () => {
     const produitId = produitSelect.value;
+
     reparationSelect.innerHTML = '<option value="">-- Sélectionnez une réparation --</option>';
     reparationContainer.style.display = 'none';
     detailsContainer.style.display = 'none';
+    checkboxContainer.style.display = 'none';
     genererPdfBtn.style.display = 'none';
-    selectedReparation = null;
 
-    if (produitId) {
-      selectedProduit = await fetch(`/api/produit/${produitId}`).then(res => res.json());
+    if (!produitId) return;
 
-      const reparations = await fetch(`/api/reparations/produit/${produitId}`).then(res => res.json());
-      reparations.forEach(r => {
-        const option = document.createElement('option');
-        option.value = r._id;
-        option.textContent = `${r.description} - ${r.statut}`;
-        reparationSelect.appendChild(option);
-      });
-      reparationContainer.style.display = 'block';
-    }
+    const reparations = await fetch(`/api/reparations/produit/${produitId}`).then(res => res.json());
+    reparations.forEach(r => {
+      const option = document.createElement('option');
+      option.value = r._id;
+      option.dataset.prix = r.prix || 0;
+      option.dataset.notes = r.notes || '';
+      option.textContent = `${r.description} - ${formatMontant(r.prix)} - ${r.statut}`;
+      reparationSelect.appendChild(option);
+    });
+
+    reparationContainer.style.display = 'flex';
   });
 
-  reparationSelect.addEventListener('change', async () => {
-    const selectedOptions = Array.from(reparationSelect.selectedOptions);
-    const reparationIds = selectedOptions.map(option => option.value).filter(id => id);
-    detailsContainer.innerHTML = ''; // Réinitialise les détails
-    selectedReparations = [];
+  reparationSelect.addEventListener('change', () => {
+    const selectedOptions = Array.from(reparationSelect.selectedOptions).filter(option => option.value);
+    detailsContainer.innerHTML = '<h3>Détails</h3>';
 
-    if (reparationIds.length > 0) {
-      for (const id of reparationIds) {
-        try {
-          const reparation = await fetch(`/api/reparations/${id}`).then(res => res.json());
-          selectedReparations.push(reparation);
-
-          const detail = document.createElement('p');
-          detail.textContent = `• ${reparation.description} — ${reparation.prix}$ ${reparation.notes ? '(' + reparation.notes + ')' : ''}`;
-          detailsContainer.appendChild(detail);
-        } catch (error) {
-          console.error(`Erreur chargement réparation ${id}`, error);
-        }
-      }
-
-      detailsContainer.style.display = 'block';
-      genererPdfBtn.style.display = 'inline-block';
-      document.getElementById('checkboxContainer').style.display = 'inline-block';
-      // telechargerPdfbtn.style.display = 'inline-block';
-    } else {
-      selectedReparations = [];
+    if (!selectedOptions.length) {
       detailsContainer.style.display = 'none';
+      checkboxContainer.style.display = 'none';
       genererPdfBtn.style.display = 'none';
-    }
-  });
-
-
-  document.getElementById('genererPdfBtn').addEventListener('click', async (e) => {
-    e.preventDefault();
-
-    const clientId = document.getElementById('clientSelect').value;
-    const produitId = document.getElementById('produitSelect').value;
-    const selectedOptions = Array.from(document.getElementById('reparationSelect').selectedOptions);
-    const reparationIds = selectedOptions.map(option => option.value).filter(id => id);
-    const envoyerParMail = document.getElementById('envoyerMailCheckbox').checked;
-
-    if (!clientId || !produitId || reparationIds.length === 0) {
-      alert("Veuillez sélectionner un client, un produit et au moins une réparation.");
       return;
     }
+
+    let total = 0;
+    selectedOptions.forEach(option => {
+      const prix = Number(option.dataset.prix || 0);
+      total += prix;
+
+      const detail = document.createElement('p');
+      detail.textContent = `${option.textContent}${option.dataset.notes ? ` (${option.dataset.notes})` : ''}`;
+      detailsContainer.appendChild(detail);
+    });
+
+    const totalLine = document.createElement('p');
+    totalLine.className = 'invoice-total-line';
+    totalLine.textContent = `Sous-total sélectionné : ${formatMontant(total)}`;
+    detailsContainer.appendChild(totalLine);
+
+    detailsContainer.style.display = 'block';
+    checkboxContainer.style.display = 'grid';
+    genererPdfBtn.style.display = 'inline-flex';
+  });
+
+  document.getElementById('factureForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const clientId = clientSelect.value;
+    const produitId = produitSelect.value;
+    const reparationIds = Array.from(reparationSelect.selectedOptions)
+      .map(option => option.value)
+      .filter(Boolean);
+
+    if (!clientId || !produitId || reparationIds.length === 0) {
+      alert('Veuillez sélectionner un client, un produit et au moins une réparation.');
+      return;
+    }
+
+    genererPdfBtn.disabled = true;
+    genererPdfBtn.textContent = 'Création...';
 
     try {
       const response = await fetch('/api/factures', {
@@ -134,31 +151,150 @@ document.addEventListener('DOMContentLoaded', async () => {
           produitId,
           reparationIds,
           inclureTaxes: inclureTaxesCheckbox.checked,
-          envoyerParMail
+          envoyerParMail: envoyerMailCheckbox.checked
         })
       });
 
-      if (!response.ok) throw new Error("Erreur lors de la création de la facture");
-      // ✅ Télécharger si la case est cochée
       const result = await response.json();
-   if (downloadChecked.checked) {
-  lastFactureId = result._id;
-  const res = await fetch(`/api/factures/${lastFactureId}/pdf?inclureTaxes=${inclureTaxesCheckbox.checked}`);
-  if (!res.ok) throw new Error("Erreur lors du téléchargement");
+      if (!response.ok) throw new Error(result.error || result.erreur || 'Erreur lors de la création de la facture');
+
+      if (downloadChecked.checked) {
+        await telechargerFacture(result._id, inclureTaxesCheckbox.checked);
+      }
+
+      await chargerFactures(facturesTableBody);
+      alert(result.message || 'Facture créée avec succès.');
+    } catch (err) {
+      console.error('Erreur facture :', err);
+      alert(err.message || 'Une erreur est survenue lors de la création de la facture.');
+    } finally {
+      genererPdfBtn.disabled = false;
+      genererPdfBtn.textContent = 'Créer la facture';
+    }
+  });
+});
+
+async function chargerClients(clientSelect) {
+  clientsCache = await fetch('/api/clients').then(res => res.json());
+
+  clientsCache.forEach(c => {
+    const option = document.createElement('option');
+    option.value = c._id;
+    option.textContent = `${c.nom || ''} ${c.prenom || ''}`.trim();
+    clientSelect.appendChild(option);
+  });
+}
+
+async function chargerFactures(tbody) {
+  try {
+    facturesCache = await fetch('/api/factures').then(res => res.json());
+    afficherFacturesFiltrees(tbody);
+  } catch (err) {
+    console.error('Erreur chargement factures :', err);
+    tbody.innerHTML = '<tr><td colspan="8">Erreur lors du chargement des factures.</td></tr>';
+  }
+}
+
+function afficherFacturesFiltrees(tbody) {
+  afficherFactures(tbody, filtrerFactures());
+}
+
+function filtrerFactures() {
+  const numero = normaliserTexte(document.getElementById('rechercheNumeroFacture').value).replace(/^#/, '');
+  const clientRecherche = normaliserTexte(document.getElementById('rechercheClientFacture').value);
+  const dateDebutValue = document.getElementById('rechercheDateDebut').value;
+  const dateFinValue = document.getElementById('rechercheDateFin').value;
+  const dateDebut = dateDebutValue ? debutJour(dateDebutValue) : null;
+  const dateFin = dateFinValue ? finJour(dateFinValue) : null;
+
+  return facturesCache.filter(facture => {
+    if (numero && !String(facture.numeroFacture || '').includes(numero)) return false;
+
+    const client = facture.client
+      ? `${facture.client.nom || ''} ${facture.client.prenom || ''}`
+      : '';
+    if (clientRecherche && !normaliserTexte(client).includes(clientRecherche)) return false;
+
+    const dateFacture = lireDate(facture.date);
+    if ((dateDebut || dateFin) && !dateFacture) return false;
+    if (dateDebut && dateFacture < dateDebut) return false;
+    if (dateFin && dateFacture > dateFin) return false;
+
+    return true;
+  });
+}
+
+function afficherFactures(tbody, factures) {
+  tbody.innerHTML = '';
+
+  const facturesCount = document.getElementById('facturesCount');
+  if (facturesCount) facturesCount.textContent = factures.length;
+
+  if (!factures.length) {
+    tbody.innerHTML = '<tr><td colspan="8">Aucune facture ne correspond à la recherche.</td></tr>';
+    return;
+  }
+
+  factures.forEach(facture => {
+    const tr = document.createElement('tr');
+    const client = facture.client ? `${facture.client.nom || ''} ${facture.client.prenom || ''}`.trim() : '';
+    const produit = facture.produit ? `${facture.produit.nom || ''} ${facture.produit.model || ''}`.trim() : '';
+
+    tr.innerHTML = `
+      <td>${formatNumeroFacture(facture.numeroFacture)}</td>
+      <td>${client || '-'}</td>
+      <td>${produit || '-'}</td>
+      <td>${formatDate(facture.date)}</td>
+      <td>${formatMontant(facture.totalTTC || facture.totalHT || 0)}</td>
+      <td>${renderStatutSelect(facture)}</td>
+      <td>${facture.envoyeeParEmail ? 'Envoyée' : 'Non envoyée'}</td>
+      <td>
+        <button type="button" class="table-action" data-download="${facture._id}" data-taxes="${facture.inclureTaxes ? 'true' : 'false'}">PDF</button>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll('[data-download]').forEach(button => {
+    button.addEventListener('click', () => {
+      telechargerFacture(button.dataset.download, button.dataset.taxes === 'true');
+    });
+  });
+
+  tbody.querySelectorAll('[data-statut]').forEach(select => {
+    select.addEventListener('change', async () => {
+      await changerStatutFacture(select.dataset.statut, select.value);
+      await chargerFactures(tbody);
+    });
+  });
+}
+
+async function changerStatutFacture(factureId, statut) {
+  const response = await fetch(`/api/factures/${factureId}/statut`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ statut })
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    alert(data.error || 'Impossible de changer le statut.');
+  }
+}
+
+async function telechargerFacture(factureId, inclureTaxes) {
+  const res = await fetch(`/api/factures/${factureId}/pdf?inclureTaxes=${inclureTaxes}`);
+  if (!res.ok) throw new Error('Erreur lors du téléchargement');
 
   const blob = await res.blob();
+  const contentDisposition = res.headers.get('Content-Disposition');
+  let filename = `facture_${factureId}.pdf`;
 
-  const contentDisposition = res.headers.get("Content-Disposition");
-  console.log("Header Content-Disposition:", contentDisposition); // <== ici
-
-  let filename = `facture_${lastFactureId}.pdf`;  // fallback
   if (contentDisposition) {
     const matches = contentDisposition.match(/filename="(.+)"/);
-    if (matches && matches[1]) {
-      filename = matches[1];
-    }
+    if (matches && matches[1]) filename = matches[1];
   }
-  console.log("Nom de fichier choisi:", filename); // <== et ici
 
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -170,59 +306,59 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.URL.revokeObjectURL(url);
 }
 
+function renderStatutSelect(facture) {
+  const statutActuel = facture.statut || 'emise';
+  const options = [
+    ['emise', 'Émise'],
+    ['envoyee', 'Envoyée'],
+    ['payee', 'Payée'],
+    ['annulee', 'Annulée']
+  ];
 
+  return `
+    <select class="status-select" data-statut="${facture._id}">
+      ${options.map(([value, label]) => `
+        <option value="${value}" ${statutActuel === value ? 'selected' : ''}>${label}</option>
+      `).join('')}
+    </select>
+  `;
+}
 
+function formatNumeroFacture(numero) {
+  return numero ? `#${String(numero).padStart(4, '0')}` : '-';
+}
 
+function formatDate(valeur) {
+  const date = lireDate(valeur);
+  return date ? date.toLocaleDateString('fr-CA') : '-';
+}
 
-      alert(result.message || "Facture envoyée avec succès par courriel !");
+function formatMontant(valeur) {
+  const montant = Number(valeur || 0);
+  return `${montant.toFixed(2)} $`;
+}
 
-    } catch (err) {
-      console.error('Erreur PDF :', err);
-      alert("Une erreur est survenue lors de l'envoi de la facture.");
-    }
-  });
+function lireDate(valeur) {
+  if (!valeur) return null;
+  const date = new Date(valeur);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
 
-  /*
-  // Clic sur le bouton Télécharger la facture
-  document.getElementById('telechargerPdfBtn').addEventListener('click', async (e) => {
-    e.preventDefault();
-  
-    if (!lastFactureId) {
-      alert("Veuillez d'abord générer une facture.");
-      return;
-    }
-  
-    try {
-      // On fait une requête GET pour récupérer le PDF (buffer)
-      const response = await fetch(`/api/factures/${lastFactureId}/pdf`, {
-        method: 'GET'
-      });
-  
-      if (!response.ok) throw new Error("Erreur lors du téléchargement de la facture");
-  
-      // Récupérer le contenu du PDF sous forme de Blob
-      const blob = await response.blob();
-  
-      // Créer un lien temporaire pour forcer le téléchargement
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-  
-      // Donner un nom au fichier PDF téléchargé (optionnel)
-      a.download = `facture_${lastFactureId}.pdf`;
-  
-      document.body.appendChild(a);
-      a.click();
-  
-      // Nettoyer le DOM et libérer l'URL temporaire
-      a.remove();
-      window.URL.revokeObjectURL(url);
-  
-    } catch (err) {
-      console.error('Erreur téléchargement PDF :', err);
-      alert("Une erreur est survenue lors du téléchargement de la facture.");
-    }
-  });*/
+function debutJour(dateString) {
+  const date = new Date(`${dateString}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
 
+function finJour(dateString) {
+  const date = new Date(`${dateString}T23:59:59.999`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
 
-});
+function normaliserTexte(valeur) {
+  return (valeur || '')
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
