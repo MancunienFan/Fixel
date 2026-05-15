@@ -1,3 +1,10 @@
+  #detailsReparation {
+      background: #fff;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
  body {
       font-family: Arial;
       background: #f0f0f0;
@@ -58,6 +65,7 @@ body {
 h1 {
   text-align: center;
   color: #333;
+  
 }
 
 form {
@@ -65,6 +73,12 @@ form {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1rem;
   margin-top: 2rem;
+  max-width: 600px;
+  margin: auto;
+  background: #f8f8f8;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 label {
@@ -72,15 +86,23 @@ label {
   flex-direction: column;
   font-weight: 600;
   color: #444;
+  font-weight: bold;
+  margin-top: 15px;
+  display: block;
 }
 
-input, select {
+input, select,textarea {
   padding: 0.6rem;
   font-size: 1rem;
   border-radius: 6px;
   border: 1px solid #ccc;
   margin-top: 5px;
   background-color: #fdfdfd;
+  width: 100%;
+
+  
+
+
 }
 
 .actions {
@@ -97,6 +119,10 @@ button {
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.3s;
+  width: 100%;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+     
 }
 
 button[type="submit"] {
@@ -171,3 +197,93 @@ form {
   flex-direction: column;
 }
 
+/*tableau téléphone client*/
+
+#produits-section {
+  display: none;
+  margin-top: 3rem;
+}
+#produits-section h2 {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  color: #333;
+}
+table-container {
+  max-width: 900px;
+  margin: auto;
+  background: #fff;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#produits-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+#produits-table thead {
+  background-color: #f2f2f2;
+}
+
+#produits-table th,
+#produits-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.table-container {
+  max-width: 900px;
+  margin: auto;
+  background: #fff;
+  padding: 1rem;
+  border-radius: 16px; /* 👈 arrondi doux */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden; /* pour que les coins du tableau suivent le conteneur */
+}
+
+/* Tableau */
+#produits-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 12px; /* facultatif, ne s’applique que si overflow est géré */
+  overflow: hidden;
+}
+
+/* En-tête */
+#produits-table thead {
+  background-color: #007BFF;
+  color: white;
+}
+
+/* Cellules */
+#produits-table th,
+#produits-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;  /* 2 colonnes */
+  column-gap: 24px;                /* espace HORIZONTAL entre les colonnes */
+  row-gap: 24px;                   /* espace VERTICAL entre les lignes  👈 IMPORTANT */
+}
+#form-client label {
+  display: flex;
+  flex-direction: column;
+}
+.actions button {
+  flex: 0 1 100px;    /* largeur MAX 150px */
+  padding: 10px 0;
+  font-size: 16px;
+  border-radius: 8px;
+}
+.actions button {
+  width: 140px;     /* fixe */
+  padding: 10px 0;
+}
+/**/
