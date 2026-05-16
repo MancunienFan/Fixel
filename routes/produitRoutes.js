@@ -1,29 +1,31 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Produit = require('../models/produitModel');
+const Reparation = require('../models/reparationModel');
+const Facture = require('../models/Facture');
+const Client = require('../models/clientModel');
 
-// GET tous les produits
-/*
-router.get('/produits', async (req, res) => {
-  const produits = await Produit.find();
-  res.json(produits);
-});*/
+function idInvalide(id) {
+  return !mongoose.Types.ObjectId.isValid(id);
+}
 
 router.get('/produits', async (req, res) => {
   try {
     const produits = await Produit.find({ type: 'stock' }).sort({ dateachat: -1 });
     res.json(produits);
   } catch (err) {
-    console.error('Erreur lors de la récupération des produits :', err);
+    console.error('Erreur lors de la recuperation des produits :', err);
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });
 
-
-// POST un produit
 router.post('/produits', async (req, res) => {
   try {
-    const produit = new Produit(req.body);
+    const produit = new Produit({
+      ...req.body,
+      type: req.body.type || 'stock'
+    });
     await produit.save();
     res.status(201).json(produit);
   } catch (err) {
@@ -31,9 +33,12 @@ router.post('/produits', async (req, res) => {
   }
 });
 
-// Récupérer toutes les réparations pour un produit donné
 router.get('/produits/:id', async (req, res) => {
   try {
+    if (idInvalide(req.params.id)) {
+      return res.status(400).json({ erreur: 'ID produit invalide.' });
+    }
+
     const reparations = await Reparation.find({ produit: req.params.id }).populate('produit');
     res.json(reparations);
   } catch (err) {
@@ -43,75 +48,110 @@ router.get('/produits/:id', async (req, res) => {
 
 router.get('/produit/:id', async (req, res) => {
   try {
+    if (idInvalide(req.params.id)) {
+      return res.status(400).json({ erreur: 'ID produit invalide.' });
+    }
+
     const produit = await Produit.findById(req.params.id);
-    if (!produit) return res.status(404).json({ erreur: 'Produit non trouvé' });
+    if (!produit) return res.status(404).json({ erreur: 'Produit non trouve' });
     res.json(produit);
   } catch (err) {
     res.status(400).json({ erreur: err.message });
   }
 });
 
-// PUT : mise à jour
 router.put('/produit/:id', async (req, res) => {
   try {
-        const updateData = {
+    if (idInvalide(req.params.id)) {
+      return res.status(400).json({ erreur: 'ID produit invalide.' });
+    }
+
+    const updateData = {
       ...req.body,
       datemodification: new Date()
     };
- const produit = await Produit.findByIdAndUpdate(
+
+    const produit = await Produit.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { new: true }
+      { new: true, runValidators: true }
     );
-    if (!produit) return res.status(404).json({ erreur: 'Produit non trouvé' });
+
+    if (!produit) return res.status(404).json({ erreur: 'Produit non trouve' });
     res.json(produit);
   } catch (err) {
-    res.status(500).json({ erreur: err.message });
+    res.status(400).json({ erreur: err.message });
   }
 });
 
-// DELETE : suppression
 router.delete('/produit/:id', async (req, res) => {
   try {
-    const deleted = await Produit.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ erreur: 'Produit non trouvé' });
-    res.json({ message: 'Produit supprimé' });
+    if (idInvalide(req.params.id)) {
+      return res.status(400).json({ erreur: 'ID produit invalide.' });
+    }
+
+    const produit = await Produit.findById(req.params.id);
+    if (!produit) return res.status(404).json({ erreur: 'Produit non trouve' });
+
+    const [reparationLiee, factureLiee] = await Promise.all([
+      Reparation.exists({ produit: req.params.id }),
+      Facture.exists({ produit: req.params.id })
+    ]);
+
+    if (reparationLiee || factureLiee) {
+      return res.status(409).json({
+        erreur: 'Impossible de supprimer ce produit: il est lie a des reparations ou factures.'
+      });
+    }
+
+    await produit.deleteOne();
+    res.json({ message: 'Produit supprime' });
   } catch (err) {
     res.status(500).json({ erreur: err.message });
   }
 });
-
 
 router.get('/produits/client/:clientId', async (req, res) => {
   try {
+    if (idInvalide(req.params.clientId)) {
+      return res.status(400).json({ erreur: 'ID client invalide.' });
+    }
+
     const produits = await Produit.find({
       clientId: req.params.clientId,
-      type: "client"  // Important pour filtrer les téléphones du client
-    });
+      type: 'client'
+    }).sort({ datemodification: -1, dateCreation: -1 });
+
     res.json(produits);
   } catch (err) {
     res.status(500).send(err.message);
   }
 });
 
-
 router.post('/produits/client/:clientId', async (req, res) => {
   try {
+    if (idInvalide(req.params.clientId)) {
+      return res.status(400).json({ erreur: 'ID client invalide.' });
+    }
+
     const nouveauProduit = new Produit({
       ...req.body,
       clientId: req.params.clientId,
-      type: "client", // on force le type ici
+      type: 'client',
       dateCreation: new Date(),
-      dateModification: new Date()
+      datemodification: new Date()
     });
+
+    const clientExiste = await Client.exists({ _id: req.params.clientId });
+    if (!clientExiste) {
+      return res.status(404).json({ erreur: 'Client introuvable.' });
+    }
 
     const savedProduit = await nouveauProduit.save();
     res.status(201).json(savedProduit);
   } catch (err) {
-    res.status(500).json({ erreur: err.message });
+    res.status(400).json({ erreur: err.message });
   }
 });
-
-
 
 module.exports = router;

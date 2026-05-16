@@ -4,6 +4,12 @@ const router = express.Router();
 const Produit = require('../models/produitModel');
 const Reparation = require('../models/reparationModel');
 const Facture = require('../models/Facture');
+const {
+  STATUTS_REPARATION_ACTIFS,
+  normaliserStatutReparation,
+  libelleStatutReparation,
+  calculerSlaReparation
+} = require('../utils/reparationWorkflow');
 
 router.get('/stats', async (req, res) => {
   try {
@@ -21,7 +27,7 @@ router.get('/stats', async (req, res) => {
         .sort({ date: -1, numeroFacture: -1 })
         .limit(6)
         .lean(),
-      Reparation.find({ statut: { $in: ['en attente', 'en cours'] } })
+      Reparation.find({ statut: { $nin: ['livre', 'livree', 'annule', 'annulee'] } })
         .populate({
           path: 'produit',
           select: 'nom model imei clientId',
@@ -51,6 +57,12 @@ router.get('/stats', async (req, res) => {
     const facturesPayees = factures.filter(facture => facture.statut === 'payee');
     const facturesImpayees = factures.filter(facture => ['emise', 'envoyee'].includes(facture.statut));
     const ventesParMois = calculerVentesParMois(produitsVendus);
+    const repartitionsReparations = compterReparationsParStatut(reparations);
+    const reparationsActivesNormalisees = reparationsActives.filter(reparation => (
+      STATUTS_REPARATION_ACTIFS.includes(normaliserStatutReparation(reparation.statut))
+    ));
+    const reparationsActivesAvecSla = reparationsActivesNormalisees.map(reparation => ajouterSlaReparation(reparation));
+    const alertesSla = construireAlertesSla(reparationsActivesAvecSla);
 
     const totalPaye = somme(facturesPayees.map(totalFacture));
     const totalImpaye = somme(facturesImpayees.map(totalFacture));
@@ -65,10 +77,19 @@ router.get('/stats', async (req, res) => {
         sansPrixVente: produits.filter(produit => !Number(produit.prixvente)).length
       },
       reparations: {
-        enAttente: reparations.filter(reparation => reparation.statut === 'en attente').length,
-        enCours: reparations.filter(reparation => reparation.statut === 'en cours').length,
-        terminees: reparations.filter(reparation => normaliserTexte(reparation.statut).includes('termine')).length,
-        actives: reparationsActives
+        recues: repartitionsReparations.recu || 0,
+        diagnostic: repartitionsReparations.diagnostic || 0,
+        attentePiece: repartitionsReparations['en attente piece'] || 0,
+        enReparation: repartitionsReparations['en reparation'] || 0,
+        pretes: repartitionsReparations.pret || 0,
+        livrees: repartitionsReparations.livre || 0,
+        annulees: repartitionsReparations.annule || 0,
+        sla: {
+          retards: alertesSla.retards,
+          attentions: alertesSla.attentions,
+          alertes: alertesSla.alertes
+        },
+        actives: reparationsActivesAvecSla
       },
       factures: {
         emises: factures.filter(facture => facture.statut === 'emise').length,
@@ -86,11 +107,10 @@ router.get('/stats', async (req, res) => {
       },
       graphiques: {
         ventesParMois,
-        reparationsParStatut: [
-          { label: 'En attente', valeur: reparations.filter(reparation => reparation.statut === 'en attente').length },
-          { label: 'En cours', valeur: reparations.filter(reparation => reparation.statut === 'en cours').length },
-          { label: 'Terminees', valeur: reparations.filter(reparation => normaliserTexte(reparation.statut).includes('termine')).length }
-        ],
+        reparationsParStatut: Object.entries(repartitionsReparations).map(([statut, valeur]) => ({
+          label: libelleStatutReparation(statut),
+          valeur
+        })),
         facturesParStatut: [
           { label: 'Emises', valeur: factures.filter(facture => facture.statut === 'emise').length },
           { label: 'Envoyees', valeur: factures.filter(facture => facture.statut === 'envoyee').length },
@@ -156,6 +176,56 @@ function normaliserTexte(valeur) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .trim();
+}
+
+function compterReparationsParStatut(reparations) {
+  return reparations.reduce((total, reparation) => {
+    const statut = normaliserStatutReparation(reparation.statut) || 'recu';
+    total[statut] = (total[statut] || 0) + 1;
+    return total;
+  }, {});
+}
+
+function ajouterSlaReparation(reparation) {
+  return {
+    ...reparation,
+    sla: calculerSlaReparation(reparation)
+  };
+}
+
+function construireAlertesSla(reparations) {
+  const alertes = reparations
+    .filter(reparation => reparation.sla && reparation.sla.criticite !== 'ok')
+    .sort((a, b) => {
+      const rang = { retard: 0, attention: 1, ok: 2 };
+      return (rang[a.sla.criticite] ?? 2) - (rang[b.sla.criticite] ?? 2)
+        || Number(a.sla.heuresRestantes || 0) - Number(b.sla.heuresRestantes || 0);
+    })
+    .slice(0, 8)
+    .map(reparation => ({
+      id: String(reparation._id),
+      produit: formatProduitAlerte(reparation.produit),
+      client: formatClientAlerte(reparation.client || (reparation.produit && reparation.produit.clientId)),
+      statut: reparation.sla.statut,
+      criticite: reparation.sla.criticite,
+      message: reparation.sla.message
+    }));
+
+  return {
+    retards: reparations.filter(reparation => reparation.sla && reparation.sla.criticite === 'retard').length,
+    attentions: reparations.filter(reparation => reparation.sla && reparation.sla.criticite === 'attention').length,
+    alertes
+  };
+}
+
+function formatProduitAlerte(produit = {}) {
+  produit = produit || {};
+  return [produit.nom, produit.model, produit.imei].filter(Boolean).join(' - ') || '-';
+}
+
+function formatClientAlerte(client = {}) {
+  client = client || {};
+  return [client.nom, client.prenom].filter(Boolean).join(' ') || '-';
 }
 
 module.exports = router;

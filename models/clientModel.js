@@ -1,38 +1,84 @@
 const mongoose = require('mongoose');
+const {
+  nettoyerTexte,
+  nettoyerTexteMinuscule,
+  emailValide,
+  telephoneValide
+} = require('../utils/validators');
 
 const clientSchema = new mongoose.Schema({
-  nom: String,
-  prenom: String,
-  telephone: String,
-  email: String,
-  photo: String, // URL ou base64 si besoin
-
-  notes: {
+  nom: {
     type: String,
-    default: ""
+    required: true,
+    trim: true,
+    minlength: 2,
+    maxlength: 80,
+    set: nettoyerTexte
   },
-
+  prenom: {
+    type: String,
+    required: true,
+    trim: true,
+    minlength: 2,
+    maxlength: 80,
+    set: nettoyerTexte
+  },
+  telephone: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 30,
+    set: nettoyerTexte,
+    validate: {
+      validator: telephoneValide,
+      message: 'Telephone invalide.'
+    }
+  },
+  email: {
+    type: String,
+    trim: true,
+    lowercase: true,
+    maxlength: 120,
+    set: nettoyerTexteMinuscule,
+    validate: {
+      validator: emailValide,
+      message: 'Email invalide.'
+    }
+  },
+  photo: {
+    type: String,
+    trim: true,
+    set: nettoyerTexte
+  },
   dateCreation: {
     type: Date,
-    default: Date.now
+    default: Date.now,
+    immutable: true
   },
-
   dateModification: {
     type: Date,
     default: Date.now
   },
-   notes: {
+  notes: {
     type: String,
-    default: ""  // Par défaut vide
-  },
-
+    trim: true,
+    maxlength: 2000,
+    default: ''
+  }
 });
+
+clientSchema.index({ email: 1 }, {
+  unique: true,
+  sparse: true,
+  partialFilterExpression: { email: { $type: 'string' } }
+});
+clientSchema.index({ telephone: 1 });
+clientSchema.index({ nom: 1, prenom: 1 });
 
 clientSchema.virtual('datecreationFormatte').get(function () {
   return this.dateCreation ? this.dateCreation.toLocaleDateString('fr-FR') : '';
 });
 
-// 🛠️ Middleware pour mettre à jour `dateModification` à chaque modification
 clientSchema.pre('findOneAndUpdate', function (next) {
   this.set({ dateModification: new Date() });
   next();

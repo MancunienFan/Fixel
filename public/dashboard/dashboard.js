@@ -3,12 +3,15 @@ const elements = {
   produitsVendus: document.getElementById('produitsVendus'),
   reparationsActives: document.getElementById('reparationsActives'),
   facturesImpayees: document.getElementById('facturesImpayees'),
+  slaRetards: document.getElementById('slaRetards'),
+  slaAttentions: document.getElementById('slaAttentions'),
   caMois: document.getElementById('caMois'),
   profitTotalDashboard: document.getElementById('profitTotalDashboard'),
   caTotal: document.getElementById('caTotal'),
   facturesPayeesMontant: document.getElementById('facturesPayeesMontant'),
   facturesImpayeesMontant: document.getElementById('facturesImpayeesMontant'),
   stockAlertes: document.getElementById('stockAlertes'),
+  slaAlertes: document.getElementById('slaAlertes'),
   reparationsBody: document.getElementById('reparationsDashboardBody'),
   facturesBody: document.getElementById('facturesDashboardBody'),
   ventesProfitChart: document.getElementById('ventesProfitChart'),
@@ -35,12 +38,13 @@ async function chargerDashboard() {
 
     afficherIndicateurs(data);
     afficherAlertesStock(data.produits);
+    afficherAlertesSla(data.reparations.sla || {});
     afficherGraphiques(data.graphiques || {});
     afficherReparations(data.reparations.actives || []);
     afficherFactures(data.factures.dernieres || []);
   } catch (err) {
     console.error('Erreur dashboard :', err);
-    elements.reparationsBody.innerHTML = '<tr><td colspan="5">Erreur lors du chargement.</td></tr>';
+    elements.reparationsBody.innerHTML = '<tr><td colspan="6">Erreur lors du chargement.</td></tr>';
     elements.facturesBody.innerHTML = '<tr><td colspan="5">Erreur lors du chargement.</td></tr>';
   } finally {
     elements.btnRefresh.disabled = false;
@@ -49,13 +53,19 @@ async function chargerDashboard() {
 }
 
 function afficherIndicateurs(data) {
-  const reparationsActives = Number(data.reparations.enAttente || 0) + Number(data.reparations.enCours || 0);
+  const reparationsActives = Number(data.reparations.recues || 0)
+    + Number(data.reparations.diagnostic || 0)
+    + Number(data.reparations.attentePiece || 0)
+    + Number(data.reparations.enReparation || 0)
+    + Number(data.reparations.pretes || 0);
   const facturesImpayees = Number(data.factures.emises || 0) + Number(data.factures.envoyees || 0);
 
   elements.produitsDisponibles.textContent = data.produits.disponibles || 0;
   elements.produitsVendus.textContent = data.produits.vendus || 0;
   elements.reparationsActives.textContent = reparationsActives;
   elements.facturesImpayees.textContent = facturesImpayees;
+  elements.slaRetards.textContent = data.reparations.sla && data.reparations.sla.retards || 0;
+  elements.slaAttentions.textContent = data.reparations.sla && data.reparations.sla.attentions || 0;
   elements.caMois.textContent = formatMontant(data.finance.chiffreAffairesMois);
   elements.profitTotalDashboard.textContent = formatMontant(data.finance.profitTotal);
   elements.caTotal.textContent = formatMontant(data.finance.chiffreAffaires);
@@ -72,6 +82,24 @@ function afficherAlertesStock(produits) {
 
   elements.stockAlertes.innerHTML = alertes
     .map(alerte => `<li>${alerte}</li>`)
+    .join('');
+}
+
+function afficherAlertesSla(sla) {
+  const alertes = sla.alertes || [];
+
+  if (!alertes.length) {
+    elements.slaAlertes.innerHTML = '<li class="alert-ok">Aucune reparation hors delai.</li>';
+    return;
+  }
+
+  elements.slaAlertes.innerHTML = alertes
+    .map(alerte => `
+      <li class="alert-${echapperHtml(alerte.criticite)}">
+        <strong>${echapperHtml(alerte.produit)}</strong>
+        <span>${echapperHtml(alerte.client)} - ${echapperHtml(alerte.message)}</span>
+      </li>
+    `)
     .join('');
 }
 
@@ -156,7 +184,7 @@ function afficherReparations(reparations) {
   elements.reparationsBody.innerHTML = '';
 
   if (!reparations.length) {
-    elements.reparationsBody.innerHTML = '<tr><td colspan="5">Aucune reparation active.</td></tr>';
+    elements.reparationsBody.innerHTML = '<tr><td colspan="6">Aucune reparation active.</td></tr>';
     return;
   }
 
@@ -164,6 +192,9 @@ function afficherReparations(reparations) {
     const produit = reparation.produit || {};
     const client = reparation.client || produit.clientId || {};
     const tr = document.createElement('tr');
+    const sla = reparation.sla || {};
+    if (sla.criticite === 'retard') tr.classList.add('row-sla-retard');
+    if (sla.criticite === 'attention') tr.classList.add('row-sla-attention');
     const lien = produit._id
       ? `/reparation/reparation.html?id=${reparation._id}&produit=${produit._id}`
       : '#';
@@ -173,6 +204,7 @@ function afficherReparations(reparations) {
       <td>${echapperHtml(formatClient(client))}</td>
       <td>${formatDate(reparation.date)}</td>
       <td>${echapperHtml(reparation.statut || '-')}</td>
+      <td>${formatSla(sla)}</td>
       <td><a class="table-link-button" href="${lien}">Ouvrir</a></td>
     `;
 
@@ -198,11 +230,51 @@ function afficherFactures(factures) {
       <td>${echapperHtml(formatClient(client))}</td>
       <td>${formatMontant(total)}</td>
       <td>${echapperHtml(facture.statut || '-')}</td>
-      <td><a class="table-link-button" href="/api/factures/${facture._id}/pdf?inclureTaxes=${facture.inclureTaxes ? 'true' : 'false'}">PDF</a></td>
+      <td><button type="button" class="table-link-button" data-download-facture="${facture._id}" data-taxes="${facture.inclureTaxes ? 'true' : 'false'}">PDF</button></td>
     `;
 
     elements.facturesBody.appendChild(tr);
   });
+
+  elements.facturesBody.querySelectorAll('[data-download-facture]').forEach(button => {
+    button.addEventListener('click', () => {
+      telechargerFacture(button.dataset.downloadFacture, button.dataset.taxes === 'true')
+        .catch(err => alert(err.message || 'Erreur lors du telechargement'));
+    });
+  });
+}
+
+function formatSla(sla) {
+  if (!sla || !sla.actif) return '-';
+  const classe = sla.criticite === 'retard'
+    ? 'sla-badge sla-badge-retard'
+    : sla.criticite === 'attention'
+      ? 'sla-badge sla-badge-attention'
+      : 'sla-badge';
+  return `<span class="${classe}">${echapperHtml(sla.message || '-')}</span>`;
+}
+
+async function telechargerFacture(factureId, inclureTaxes) {
+  const res = await fetch(`/api/factures/${factureId}/pdf?inclureTaxes=${inclureTaxes}`);
+  if (!res.ok) throw new Error('Erreur lors du telechargement');
+
+  const blob = await res.blob();
+  const contentDisposition = res.headers.get('Content-Disposition');
+  let filename = `facture_${factureId}.pdf`;
+
+  if (contentDisposition) {
+    const match = contentDisposition.match(/filename="(.+)"/);
+    if (match) filename = match[1];
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function formatProduit(produit) {

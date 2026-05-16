@@ -1,15 +1,44 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
+const {
+  nettoyerTexte,
+  nettoyerTexteMinuscule,
+  emailValide
+} = require('../utils/validators');
 
 const utilisateurSchema = new mongoose.Schema({
-  nom: String,
-  email: { type: String, required: true, unique: true },
-  motdepasse: { type: String, required: true },
-  role: { type: String, enum: ['admin', 'mod', 'consultant'], default: 'consultant' }
+  nom: {
+    type: String,
+    trim: true,
+    maxlength: 80,
+    set: nettoyerTexte
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+    set: nettoyerTexteMinuscule,
+    validate: {
+      validator: emailValide,
+      message: 'Email invalide.'
+    }
+  },
+  motdepasse: {
+    type: String,
+    required: true,
+    minlength: 8
+  },
+  role: {
+    type: String,
+    enum: ['admin', 'mod', 'consultant'],
+    default: 'consultant',
+    index: true
+  }
 });
 
-// Hash du mot de passe avant sauvegarde
-utilisateurSchema.pre('save', async function(next) {
+utilisateurSchema.pre('save', async function (next) {
   if (!this.isModified('motdepasse')) return next();
   this.motdepasse = await bcrypt.hash(this.motdepasse, 10);
   next();

@@ -1,42 +1,65 @@
 (function verifierConnexion() {
   const token = localStorage.getItem('token');
   if (!token) {
-    window.location.href = './login/login.html';
+    window.location.href = '/login/login.html';
   }
 })();
 
+(function ajouterTokenAuxRequetesApi() {
+  const fetchOriginal = window.fetch.bind(window);
 
-// Fonction pour déconnecter l'utilisateur
+  window.fetch = (resource, options = {}) => {
+    const url = typeof resource === 'string' ? resource : resource.url;
+    const estApiLocale = url && (
+      url.startsWith('/api') ||
+      url.startsWith(window.location.origin + '/api')
+    );
+
+    if (!estApiLocale) {
+      return fetchOriginal(resource, options);
+    }
+
+    const token = localStorage.getItem('token');
+    const headers = new Headers(options.headers || {});
+
+    if (token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    return fetchOriginal(resource, {
+      ...options,
+      headers
+    });
+  };
+})();
+
 function logout() {
   localStorage.removeItem('token');
-  alert('Votre session a expiré. Vous allez être déconnecté.');
-  window.location.href = '/login.html';  // ou ta page de login
+  localStorage.removeItem('role');
+  alert('Votre session a expire. Vous allez etre deconnecte.');
+  window.location.href = '/login/login.html';
 }
 
-// Fonction qui vérifie le token et planifie la déconnexion automatique
 function checkTokenExpiration() {
   const token = localStorage.getItem('token');
   if (!token) {
-    // Pas de token : redirige vers login
-    window.location.href = '/login.html';
+    window.location.href = '/login/login.html';
     return;
   }
 
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
-    const expiration = payload.exp * 1000; // millisecondes
+    const expiration = payload.exp * 1000;
     const now = Date.now();
 
     if (now >= expiration) {
       logout();
     } else {
-      // Planifie la déconnexion à l'expiration
       setTimeout(() => {
         logout();
       }, expiration - now);
     }
   } catch (e) {
-    // Token mal formé ou autre erreur
     logout();
   }
 }

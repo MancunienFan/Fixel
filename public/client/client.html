@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <title>Client</title>
   <link rel="stylesheet" href="../style.css" />
+  <script src="/auth.js"></script>
 </head>
 
 <body>
@@ -82,6 +83,11 @@
 
   <script src="client.js"></script>
   <script src="../navbar.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      checkTokenExpiration();
+    });
+  </script>
 </body>
 
 </html>

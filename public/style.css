@@ -62,6 +62,10 @@ body {
   background: var(--bg);
 }
 
+.products-list-page {
+  padding-bottom: 96px;
+}
+
 a {
   color: var(--primary);
   text-decoration: none;
@@ -403,6 +407,30 @@ tfoot td {
   justify-content: flex-end;
 }
 
+.floating-product-action {
+  position: fixed;
+  right: 24px;
+  bottom: 84px;
+  z-index: 990;
+  width: auto;
+  margin: 0;
+}
+
+.floating-action-button {
+  width: auto;
+  min-width: 0;
+  padding: 12px 18px;
+  color: #ffffff;
+  background: var(--primary);
+  border-color: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  box-shadow: 0 12px 28px rgba(31, 41, 51, 0.24);
+}
+
+.floating-action-button:hover {
+  background: var(--primary-hover);
+}
+
 .section-header {
   display: flex;
   align-items: flex-start;
@@ -480,6 +508,10 @@ tfoot td {
 
 .metric-card-profit {
   border-color: rgba(22, 163, 74, 0.45);
+}
+
+.metric-card-warning {
+  border-color: rgba(220, 38, 38, 0.5);
 }
 
 .charts-grid {
@@ -682,6 +714,194 @@ tfoot td {
   font-weight: 700;
 }
 
+.alert-list li span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.alert-list .alert-retard {
+  border-left-color: var(--danger);
+}
+
+.alert-list .alert-attention {
+  border-left-color: var(--warning);
+}
+
+.alert-list .alert-ok {
+  border-left-color: var(--success);
+}
+
+.row-sla-retard td {
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.row-sla-attention td {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.sla-badge {
+  display: inline-block;
+  min-width: 116px;
+  padding: 5px 8px;
+  color: var(--label);
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.sla-badge-retard {
+  color: #ffffff;
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.sla-badge-attention {
+  color: #111827;
+  background: var(--warning);
+  border-color: var(--warning);
+}
+
+.atelier-container {
+  width: min(1440px, calc(100% - 32px));
+}
+
+.atelier-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(240px, 1fr));
+  gap: 14px;
+  align-items: start;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+
+.kanban-column {
+  min-width: 240px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.kanban-column-header {
+  min-height: 54px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.kanban-column-header h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.kanban-column-header span {
+  min-width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: var(--secondary);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.kanban-column-body {
+  min-height: 220px;
+  padding: 10px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.kanban-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.kanban-card a {
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+  color: var(--text);
+}
+
+.kanban-card a:hover {
+  text-decoration: none;
+}
+
+.kanban-card strong {
+  line-height: 1.25;
+}
+
+.kanban-card span,
+.kanban-card small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.kanban-card-retard {
+  border-left-color: var(--danger);
+}
+
+.kanban-card-attention {
+  border-left-color: var(--warning);
+}
+
+.kanban-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.kanban-sla {
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.kanban-sla-retard {
+  color: #ffffff;
+  background: var(--danger);
+}
+
+.kanban-sla-attention {
+  color: #111827;
+  background: var(--warning);
+}
+
+.kanban-sla-ok {
+  color: #ffffff;
+  background: var(--success);
+}
+
+.kanban-empty {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .status-select {
   min-height: 34px;
   padding: 6px 8px;
@@ -756,7 +976,8 @@ tfoot td {
 }
 
 #detailsContainer,
-#detailsReparation {
+#detailsReparation,
+.workflow-panel {
   grid-column: 1 / -1;
   padding: 14px;
   background: var(--surface);
@@ -766,6 +987,55 @@ tfoot td {
 
 #detailsContainer p {
   margin: 8px 0;
+}
+
+.workflow-panel h3 {
+  margin-bottom: 14px;
+}
+
+.workflow-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.workflow-actions button {
+  width: auto;
+  min-width: 136px;
+}
+
+.workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.workflow-history {
+  display: grid;
+  gap: 10px;
+  color: var(--muted);
+}
+
+.workflow-history-item {
+  padding: 10px 12px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.workflow-history-item strong {
+  color: var(--text);
+}
+
+.workflow-history-meta {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.workflow-history-note {
+  margin-top: 6px;
+  color: var(--text);
 }
 
 #produits-section {
@@ -849,6 +1119,7 @@ tfoot td {
   }
 
   .actions button,
+  .workflow-actions button,
   button {
     width: 100%;
   }
@@ -863,8 +1134,17 @@ tfoot td {
     bottom: 14px;
   }
 
+  .floating-product-action {
+    right: 14px;
+    bottom: 74px;
+    left: 14px;
+  }
+
+  .floating-action-button {
+    width: 100%;
+  }
+
   .filter-actions,
-  .page-actions,
   .section-header {
     flex-direction: column;
   }

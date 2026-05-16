@@ -30,6 +30,11 @@ router.post('/', async (req, res) => {
     const { clientId, produitId, reparationIds, inclureTaxes, envoyerParMail } = req.body;
     const appliquerTaxes = inclureTaxes === true || inclureTaxes === 'true';
     const reparationsArray = Array.isArray(reparationIds) ? reparationIds.flat() : [];
+
+    if (!mongoose.Types.ObjectId.isValid(clientId) || !mongoose.Types.ObjectId.isValid(produitId)) {
+      return res.status(400).json({ erreur: 'Client ou produit invalide' });
+    }
+
     const objectIds = reparationsArray
       .filter(id => mongoose.Types.ObjectId.isValid(id))
       .map(id => new mongoose.Types.ObjectId(id));
@@ -42,8 +47,25 @@ router.post('/', async (req, res) => {
     const produit = await Produit.findById(produitId);
     const reparations = await Reparation.find({ _id: { $in: objectIds } });
 
-    if (!client || !produit || reparations.length === 0) {
+    if (!client || !produit || reparations.length !== objectIds.length) {
       return res.status(404).json({ error: 'Client, produit ou réparations introuvables' });
+    }
+
+    if (produit.clientId && produit.clientId.toString() !== client._id.toString()) {
+      return res.status(400).json({ error: 'Le produit ne correspond pas au client choisi' });
+    }
+
+    const reparationsHorsProduit = reparations.some(reparation => (
+      reparation.produit && reparation.produit.toString() !== produit._id.toString()
+    ));
+
+    if (reparationsHorsProduit) {
+      return res.status(400).json({ error: 'Une reparation ne correspond pas au produit choisi' });
+    }
+
+    const factureExistante = await Facture.exists({ reparations: { $in: objectIds } });
+    if (factureExistante) {
+      return res.status(409).json({ error: 'Une des reparations est deja liee a une facture' });
     }
 
     const facture = new Facture({
@@ -103,6 +125,10 @@ router.post('/', async (req, res) => {
 
 router.put('/:id/statut', async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'ID facture invalide' });
+    }
+
     const statutsAutorises = ['emise', 'envoyee', 'payee', 'annulee'];
     const { statut, modePaiement } = req.body;
 
@@ -132,6 +158,10 @@ router.put('/:id/statut', async (req, res) => {
 
 router.get('/:id/pdf', async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).send('ID facture invalide');
+    }
+
     const facture = await Facture.findById(req.params.id)
       .populate('client')
       .populate('produit')

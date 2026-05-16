@@ -2,6 +2,10 @@ const jwt = require('jsonwebtoken');
 
 const verifierToken = (rolesAutorises = []) => {
   return (req, res, next) => {
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ message: 'Configuration JWT manquante.' });
+    }
+
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
@@ -18,7 +22,8 @@ const verifierToken = (rolesAutorises = []) => {
         return res.status(403).json({ message: 'Accès refusé. Rôle non autorisé.' });
       }
 
-      req.user = user; // optionnel mais utile
+      req.user = user;
+      req.utilisateur = user;
       next();
     });
   };

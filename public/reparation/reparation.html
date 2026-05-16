@@ -24,13 +24,55 @@
 
       
 
-      <label>Statut
-        <select name="statut" required>
-          <option value="en cours">En cours</option>
-          <option value="terminée">Terminée</option>
-          <option value="annulée">Annulée</option>
+      <label>Etape
+        <select name="statut" id="statut" required>
+          <option value="recu">Recu</option>
+          <option value="diagnostic">Diagnostic</option>
+          <option value="en attente piece">En attente piece</option>
+          <option value="en reparation">En reparation</option>
+          <option value="pret">Pret</option>
+          <option value="livre">Livre</option>
+          <option value="annule">Annule</option>
         </select>
       </label>
+
+      <label>Note de changement d'etape
+        <input type="text" name="noteTransition" id="noteTransition" maxlength="500">
+      </label>
+
+      <section class="workflow-panel" aria-label="Dates du workflow">
+        <h3>Suivi</h3>
+        <div class="workflow-actions" id="workflowActions"></div>
+        <div class="workflow-grid">
+          <label>Reception
+            <input type="text" id="dateReception" disabled>
+          </label>
+          <label>Diagnostic
+            <input type="text" id="dateDiagnostic" disabled>
+          </label>
+          <label>Attente piece
+            <input type="text" id="dateAttentePiece" disabled>
+          </label>
+          <label>Debut reparation
+            <input type="text" id="dateDebutReparation" disabled>
+          </label>
+          <label>Pret
+            <input type="text" id="datePret" disabled>
+          </label>
+          <label>Livraison
+            <input type="text" id="dateLivraison" disabled>
+          </label>
+          <label>Annulation
+            <input type="text" id="dateAnnulation" disabled>
+          </label>
+        </div>
+
+        <h3>Historique</h3>
+        <div class="workflow-history" id="workflowHistory">
+          Aucun historique disponible.
+        </div>
+      </section>
+
         <label style="grid-column: 1 / -1;">Notes
         <textarea name="notes" rows="4"
           ></textarea>

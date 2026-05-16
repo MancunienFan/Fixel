@@ -4,7 +4,9 @@
   "main": "serveur.js",
   "scripts": {
     "start": "node serveur.js",
-    "dev": "nodemon serveur.js"
+    "dev": "nodemon serveur.js",
+    "data:quality": "node scripts/dataQuality.js",
+    "data:quality:fix": "node scripts/dataQuality.js --fix"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>FixEl - Clients</title>
   <link rel="stylesheet" href="../style.css"> <!-- si tu as une feuille CSS commune -->
+  <script src="/auth.js"></script>
   <style>
     
   </style>
@@ -34,5 +35,10 @@
 </div>
   <script src="clients.js"></script>
   <script src="../navbar.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      checkTokenExpiration();
+    });
+  </script>
 </body>
 </html>

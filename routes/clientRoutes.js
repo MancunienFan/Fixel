@@ -1,36 +1,94 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Client = require('../models/clientModel');
+const Produit = require('../models/produitModel');
+const Reparation = require('../models/reparationModel');
+const Facture = require('../models/Facture');
 
-// 🔹 GET tous les clients
 router.get('/', async (req, res) => {
-  const clients = await Client.find();
-  res.json(clients);
+  try {
+    const clients = await Client.find().sort({ dateModification: -1 });
+    res.json(clients);
+  } catch (err) {
+    res.status(500).json({ erreur: err.message });
+  }
 });
 
-// 🔹 GET un client par ID
 router.get('/:id', async (req, res) => {
-  const client = await Client.findById(req.params.id);
-  res.json(client);
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ erreur: 'ID client invalide.' });
+    }
+
+    const client = await Client.findById(req.params.id);
+    if (!client) return res.status(404).json({ erreur: 'Client introuvable.' });
+    res.json(client);
+  } catch (err) {
+    res.status(500).json({ erreur: err.message });
+  }
 });
 
-// 🔹 POST nouveau client
 router.post('/', async (req, res) => {
-  const newClient = new Client(req.body);
-  await newClient.save();
-  res.json(newClient);
+  try {
+    const { nom, prenom, telephone, email, notes } = req.body;
+    if (!nom || !prenom || !telephone) {
+      return res.status(400).json({ erreur: 'Nom, prenom et telephone sont requis.' });
+    }
+
+    const newClient = new Client({ nom, prenom, telephone, email, notes });
+    await newClient.save();
+    res.status(201).json(newClient);
+  } catch (err) {
+    res.status(400).json({ erreur: err.message });
+  }
 });
 
-// 🔹 PUT mise à jour
 router.put('/:id', async (req, res) => {
-  const updated = await Client.findByIdAndUpdate(req.params.id, { ...req.body, dateModification: new Date() }, { new: true });
-  res.json(updated);
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ erreur: 'ID client invalide.' });
+    }
+
+    const updated = await Client.findByIdAndUpdate(
+      req.params.id,
+      { ...req.body, dateModification: new Date() },
+      { new: true, runValidators: true }
+    );
+
+    if (!updated) return res.status(404).json({ erreur: 'Client introuvable.' });
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ erreur: err.message });
+  }
 });
 
-// 🔹 DELETE
 router.delete('/:id', async (req, res) => {
-  await Client.findByIdAndDelete(req.params.id);
-  res.json({ message: 'Client supprimé' });
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ erreur: 'ID client invalide.' });
+    }
+
+    const client = await Client.findById(req.params.id);
+    if (!client) return res.status(404).json({ erreur: 'Client introuvable.' });
+
+    const [produitLie, reparationLiee, factureLiee] = await Promise.all([
+      Produit.exists({ clientId: req.params.id }),
+      Reparation.exists({ client: req.params.id }),
+      Facture.exists({ client: req.params.id })
+    ]);
+
+    if (produitLie || reparationLiee || factureLiee) {
+      return res.status(409).json({
+        erreur: 'Impossible de supprimer ce client: il est lie a des produits, reparations ou factures.'
+      });
+    }
+
+    await client.deleteOne();
+    res.json({ message: 'Client supprime.' });
+  } catch (err) {
+    res.status(500).json({ erreur: err.message });
+  }
 });
 
 module.exports = router;

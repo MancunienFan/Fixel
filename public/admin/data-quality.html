@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Qualite des donnees - FixEl</title>
+  <link rel="stylesheet" href="../style.css">
+  <script src="/auth.js"></script>
+</head>
+
+<body>
+  <nav id="navbar"></nav>
+
+  <main class="container dashboard-container">
+    <div class="section-header">
+      <div>
+        <h1>Qualite des donnees</h1>
+        <p class="section-subtitle">Problemes detectes dans les clients, produits, reparations et factures.</p>
+      </div>
+      <button type="button" id="btnRefreshDataQuality">Actualiser</button>
+    </div>
+
+    <section class="dashboard-grid" aria-label="Resume qualite des donnees">
+      <article class="metric-card">
+        <span class="metric-label">Problemes</span>
+        <strong id="issuesCount">0</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Corrections auto</span>
+        <strong id="correctionsCount">0</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Dernier diagnostic</span>
+        <strong id="generatedAt">-</strong>
+      </article>
+    </section>
+
+    <section class="filters-panel" aria-label="Filtres qualite des donnees">
+      <label>Type
+        <select id="entityFilter">
+          <option value="">Tous</option>
+        </select>
+      </label>
+      <label>Probleme
+        <select id="codeFilter">
+          <option value="">Tous</option>
+        </select>
+      </label>
+      <label>Recherche
+        <input type="search" id="searchFilter" placeholder="ID, message, code">
+      </label>
+      <div class="filter-actions">
+        <button type="button" id="btnResetDataQuality">Reinitialiser</button>
+      </div>
+    </section>
+
+    <p class="table-summary">
+      Problemes affiches : <strong id="visibleIssuesCount">0</strong>
+    </p>
+
+    <div class="table-container">
+      <table id="dataQualityTable">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Probleme</th>
+            <th>ID</th>
+            <th>Message</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="5">Chargement du diagnostic...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="data-quality.js"></script>
+  <script src="../navbar.js"></script>
+</body>
+
+</html>

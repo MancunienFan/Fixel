@@ -3,6 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const verifierToken = require('./middleware/verifierToken');
 
 
 
@@ -15,16 +16,18 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ Connecté à MongoDB Atlas"))
   .catch((err) => console.error("❌ Erreur MongoDB :", err));
 
-// Routes
+//utilisateur
+const utilisateurRoutes = require('./routes/utilisateurRoutes');
+app.use('/api/utilisateurs', utilisateurRoutes);
+
+// Toutes les routes metier sous /api exigent un token valide.
+app.use('/api', verifierToken());
+
 const produitRoutes = require('./routes/produitRoutes');
 app.use('/api', produitRoutes);
 
 const reparationRoutes = require('./routes/reparationRoutes');
 app.use('/api', reparationRoutes);
-
-//utilisateur
-const utilisateurRoutes = require('./routes/utilisateurRoutes');
-app.use('/api/utilisateurs', utilisateurRoutes);
 
 //clients
 const clientRoutes = require('./routes/clientRoutes');
@@ -37,6 +40,10 @@ app.use('/api/factures', facturesRoutes);
 //Tableau de bord
 const dashboardRoutes = require('./routes/dashboardRoutes');
 app.use('/api/dashboard', dashboardRoutes);
+
+//Qualite des donnees
+const dataQualityRoutes = require('./routes/dataQualityRoutes');
+app.use('/api/data-quality', dataQualityRoutes);
 
 
 
