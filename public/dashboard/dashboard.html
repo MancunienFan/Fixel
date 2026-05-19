@@ -9,7 +9,7 @@
 </head>
 
 <body>
-  <nav id="navbar"></nav>
+  <nav id="sidebar"></nav>
 
   <main class="container dashboard-container">
     <div class="section-header">
@@ -17,7 +17,23 @@
         <h1>Tableau de bord</h1>
         <p class="section-subtitle">Vue rapide de l'activite, des reparations et des factures.</p>
       </div>
-      <button type="button" id="btnRefreshDashboard">Actualiser</button>
+      <div class="dashboard-header-actions">
+        <div class="month-filter" aria-label="Filtre de periode">
+          <label>Vue
+            <select id="filtrePeriodeDashboard">
+              <option value="mois">Mois</option>
+              <option value="annee">Annee complete</option>
+            </select>
+          </label>
+          <label>Mois
+            <select id="filtreMoisDashboard"></select>
+          </label>
+          <label>Annee
+            <input type="number" id="filtreAnneeDashboard" min="2000" max="2100" step="1">
+          </label>
+        </div>
+        <button type="button" id="btnRefreshDashboard">Actualiser</button>
+      </div>
     </div>
 
     <section class="dashboard-grid" aria-label="Indicateurs principaux">
@@ -26,12 +42,28 @@
         <strong id="produitsDisponibles">0</strong>
       </article>
       <article class="metric-card">
-        <span class="metric-label">Produits vendus</span>
+        <span class="metric-label" id="labelProduitsVendus">Produits vendus ce mois</span>
         <strong id="produitsVendus">0</strong>
       </article>
       <article class="metric-card">
         <span class="metric-label">Reparations actives</span>
         <strong id="reparationsActives">0</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Reparations a faire</span>
+        <strong id="reparationsAFaire">0</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Reparations en attente</span>
+        <strong id="reparationsEnAttente">0</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Reparations en cours</span>
+        <strong id="reparationsEnCours">0</strong>
+      </article>
+      <article class="metric-card metric-card-profit">
+        <span class="metric-label">Reparations terminees</span>
+        <strong id="reparationsTerminees">0</strong>
       </article>
       <article class="metric-card">
         <span class="metric-label">Factures impayees</span>
@@ -46,11 +78,11 @@
         <strong id="slaAttentions">0</strong>
       </article>
       <article class="metric-card">
-        <span class="metric-label">CA du mois</span>
+        <span class="metric-label" id="labelCaPeriode">CA du mois</span>
         <strong id="caMois">0 $</strong>
       </article>
       <article class="metric-card metric-card-profit">
-        <span class="metric-label">Profit total</span>
+        <span class="metric-label" id="labelProfitPeriode">Profit du mois</span>
         <strong id="profitTotalDashboard">0 $</strong>
       </article>
     </section>
@@ -62,6 +94,16 @@
         <div class="chart-legend">
           <span><i class="legend-ca"></i> Chiffre d'affaires</span>
           <span><i class="legend-profit"></i> Profit</span>
+        </div>
+      </article>
+
+      <article class="chart-panel chart-panel-wide">
+        <h2>Reparations et profit par mois</h2>
+        <div id="reparationsProfitChart" class="bar-chart grouped-bar-chart"></div>
+        <div class="chart-legend">
+          <span><i class="legend-ca"></i> Revenus reparations</span>
+          <span><i class="legend-profit"></i> Profit</span>
+          <span><i class="legend-count"></i> Nombre</span>
         </div>
       </article>
 
@@ -83,10 +125,13 @@
 
     <section class="dashboard-summary">
       <div>
-        <h2>Finance</h2>
+        <h2 id="titreFinancePeriode">Finance du mois</h2>
         <dl class="summary-list">
-          <div><dt>Chiffre d'affaires total</dt><dd id="caTotal">0 $</dd></div>
-          <div><dt>Factures payees</dt><dd id="facturesPayeesMontant">0 $</dd></div>
+          <div><dt>Revenus ventes</dt><dd id="revenusVentesMois">0 $</dd></div>
+          <div><dt>Revenus reparations</dt><dd id="revenusReparationsMois">0 $</dd></div>
+          <div><dt>CA total du mois</dt><dd id="caTotal">0 $</dd></div>
+          <div><dt>Profit ventes</dt><dd id="profitVentesMois">0 $</dd></div>
+          <div><dt>Profit reparations</dt><dd id="profitReparationsMois">0 $</dd></div>
           <div><dt>Factures a encaisser</dt><dd id="facturesImpayeesMontant">0 $</dd></div>
         </dl>
       </div>
@@ -143,7 +188,7 @@
   </main>
 
   <script src="/dashboard/dashboard.js"></script>
-  <script src="/navbar.js"></script>
+  <script src="/sidebar.js"></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       checkTokenExpiration();

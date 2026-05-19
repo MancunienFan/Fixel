@@ -107,7 +107,7 @@ async function analyserProduits(contexte) {
 
     const imeiNormalise = normaliserImei(produit.imei);
     if (imeiNormalise && !imeiValide(imeiNormalise)) {
-      ajouterIssue(contexte, 'produit.imeiInvalide', 'produit', produit._id, `IMEI invalide: ${produit.imei}`);
+      ajouterIssue(contexte, 'produit.imeiInvalide', 'produit', produit._id, `Numero de serie invalide: ${produit.imei}`);
     }
 
     if (produit.type === 'client' && !produit.clientId) {

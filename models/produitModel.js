@@ -91,7 +91,7 @@ const produitSchema = new mongoose.Schema({
     set: nettoyerImei,
     validate: {
       validator: imeiValide,
-      message: 'IMEI invalide.'
+      message: 'Numero de serie invalide.'
     }
   },
   disponibilite: {

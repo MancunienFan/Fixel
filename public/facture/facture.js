@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     produits.forEach(p => {
       const option = document.createElement('option');
       option.value = p._id;
-      option.textContent = `${p.nom || 'Produit'} (${p.imei || p.model || 'sans IMEI'})`;
+      option.textContent = `${p.nom || 'Produit'} (${p.imei || p.model || 'sans numero de serie'})`;
       produitSelect.appendChild(option);
     });
 

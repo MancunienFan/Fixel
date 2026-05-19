@@ -9,9 +9,9 @@
 </head>
 
 <body class="products-list-page">
-  <nav id="navbar"></nav>
+  <nav id="sidebar"></nav>
 
-  <div class="container">
+  <main class="main-content container">
     <h1>Liste des Produits</h1>
 
     <section class="filters-panel" aria-label="Filtres des produits">
@@ -85,14 +85,14 @@
         </tfoot>
       </table>
     </div>
-  </div>
+  </main>
 
   <div class="page-actions floating-product-action">
     <button type="button" class="floating-action-button" onclick="window.location.href='./produit/produit.html'">+ Ajouter un produit</button>
   </div>
 
   <script src="index.js"></script>
-  <script src="navbar.js"></script>
+  <script src="sidebar.js"></script>
   <script src="scrollTop.js"></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {

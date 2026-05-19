@@ -198,14 +198,26 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/', async (req, res) => {
+async function listerReparations(req, res) {
   try {
-    const reparations = await Reparation.find().populate('produit').sort({ date: -1 });
+    const reparations = await Reparation.find()
+      .populate({
+        path: 'produit',
+        populate: {
+          path: 'clientId',
+          select: 'nom prenom telephone email'
+        }
+      })
+      .populate('client', 'nom prenom telephone email')
+      .sort({ date: -1 });
     res.json(reparations);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+}
+
+router.get('/reparations', listerReparations);
+router.get('/', listerReparations);
 
 router.get('/client/:clientId', async (req, res) => {
   try {

@@ -29,6 +29,10 @@ app.use('/api', produitRoutes);
 const reparationRoutes = require('./routes/reparationRoutes');
 app.use('/api', reparationRoutes);
 
+// Detection locale des appareils branches au PC
+const deviceRoutes = require('./routes/deviceRoutes');
+app.use('/api/device', deviceRoutes);
+
 //clients
 const clientRoutes = require('./routes/clientRoutes');
 app.use('/api/clients', clientRoutes);

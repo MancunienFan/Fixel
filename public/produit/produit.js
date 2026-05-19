@@ -6,6 +6,8 @@ const API_BASE_URL = window.location.origin;
 
 const token = localStorage.getItem('token');
 const role = localStorage.getItem('role');
+const btnDetecterTelephone = document.getElementById('btn-detecter-telephone');
+const messageDetection = document.getElementById('device-detect-message');
 
 if (!token) {
   window.location.href = '/login.html';
@@ -85,6 +87,66 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-delete').style.display = 'none';
   }
 });
+
+if (btnDetecterTelephone) {
+  btnDetecterTelephone.addEventListener('click', detecterTelephoneBranche);
+}
+
+async function detecterTelephoneBranche() {
+  afficherMessageDetection('Détection en cours...', 'info');
+  btnDetecterTelephone.disabled = true;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/device/detect`);
+    const data = await res.json();
+
+    if (!res.ok || !data.detected) {
+      afficherMessageDetection(
+        data.message || 'Aucun téléphone détecté. Vous pouvez entrer les informations manuellement.',
+        'warning'
+      );
+      return;
+    }
+
+    remplirChampProduit('nom', data.produit);
+    remplirChampProduit('model', data.modele);
+    remplirChampProduit('imei', data.numeroSerie);
+    remplirChampProduit('etatbatterie', data.etatBatterie);
+
+    const champsManquants = [
+      data.produit ? null : 'produit',
+      data.modele ? null : 'modèle',
+      data.numeroSerie ? null : 'numéro de série',
+      data.etatBatterie !== '' && data.etatBatterie !== undefined ? null : 'état de batterie'
+    ].filter(Boolean);
+
+    afficherMessageDetection(
+      champsManquants.length
+        ? `Téléphone détecté, mais certaines informations sont manquantes (${champsManquants.join(', ')}). Vous pouvez les entrer manuellement.`
+        : 'Téléphone détecté. Les champs disponibles ont été remplis.',
+      champsManquants.length ? 'warning' : 'success'
+    );
+  } catch (err) {
+    console.error('Erreur detection telephone:', err);
+    afficherMessageDetection('Impossible de détecter le téléphone. Vous pouvez entrer les informations manuellement.', 'warning');
+  } finally {
+    btnDetecterTelephone.disabled = false;
+  }
+}
+
+function remplirChampProduit(nomChamp, valeur) {
+  if (valeur === undefined || valeur === null || valeur === '') return;
+
+  const champ = document.querySelector(`[name="${nomChamp}"]`);
+  if (champ) champ.value = valeur;
+}
+
+function afficherMessageDetection(message, type) {
+  if (!messageDetection) return;
+
+  messageDetection.textContent = message;
+  messageDetection.className = `device-detect-message device-detect-message-${type}`;
+}
 
 // === RÉPARATIONS ===
 async function chargerReparations() {

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Réparations - FixEl</title>
+  <link rel="stylesheet" href="../style.css">
+  <script src="/auth.js"></script>
+</head>
+
+<body>
+  <nav id="sidebar"></nav>
+
+  <main class="main-content container">
+    <div class="section-header">
+      <div>
+        <h1>Réparations</h1>
+        <p class="section-subtitle">Liste, suivi et accès rapide aux dossiers de réparation.</p>
+      </div>
+      <button type="button" id="btnRefreshReparations">Actualiser</button>
+    </div>
+
+    <section class="filters-panel" aria-label="Filtres des réparations">
+      <label>Étape
+        <select id="filtreStatutReparation">
+          <option value="">Toutes</option>
+          <option value="recu">Reçu</option>
+          <option value="diagnostic">Diagnostic</option>
+          <option value="en attente piece">En attente pièce</option>
+          <option value="en reparation">En réparation</option>
+          <option value="pret">Prêt</option>
+          <option value="livre">Livré</option>
+          <option value="annule">Annulé</option>
+        </select>
+      </label>
+
+      <label>Client
+        <input type="search" id="filtreClientReparation" placeholder="Nom ou prénom">
+      </label>
+
+      <label>Mois
+        <select id="filtreMoisReparation">
+          <option value="">Tous</option>
+          <option value="1">Janvier</option>
+          <option value="2">Février</option>
+          <option value="3">Mars</option>
+          <option value="4">Avril</option>
+          <option value="5">Mai</option>
+          <option value="6">Juin</option>
+          <option value="7">Juillet</option>
+          <option value="8">Août</option>
+          <option value="9">Septembre</option>
+          <option value="10">Octobre</option>
+          <option value="11">Novembre</option>
+          <option value="12">Décembre</option>
+        </select>
+      </label>
+
+      <label>Année
+        <input type="number" id="filtreAnneeReparation" min="2000" max="2100" placeholder="Ex. 2026">
+      </label>
+
+      <div class="filter-actions">
+        <button type="button" id="btnResetFiltresReparations">Réinitialiser</button>
+      </div>
+    </section>
+
+    <p class="table-summary">
+      Réparations affichées : <strong id="reparationsCount">0</strong>
+    </p>
+
+    <div class="table-container">
+      <table id="reparationsTable">
+        <thead>
+          <tr>
+            <th>Client</th>
+            <th>Produit / téléphone</th>
+            <th>Description</th>
+            <th>Prix</th>
+            <th>Étape</th>
+            <th>Réception</th>
+            <th>Dernière mise à jour</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="7">Chargement des réparations...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="reparations.js"></script>
+  <script src="../sidebar.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      checkTokenExpiration();
+    });
+  </script>
+</body>
+
+</html>

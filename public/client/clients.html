@@ -11,8 +11,8 @@
 </head>
 <body>
 
-    <nav id="navbar"></nav>
-<div class="container">
+    <nav id="sidebar"></nav>
+<main class="main-content container">
   <h1>Liste des Clients</h1>
 
   <table>
@@ -32,9 +32,9 @@
   </table>
 
  <button onclick="window.location.href='client.html'">➕ Ajouter un client</button>
-</div>
+</main>
   <script src="clients.js"></script>
-  <script src="../navbar.js"></script>
+  <script src="../sidebar.js"></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       checkTokenExpiration();

@@ -2,19 +2,34 @@ const elements = {
   produitsDisponibles: document.getElementById('produitsDisponibles'),
   produitsVendus: document.getElementById('produitsVendus'),
   reparationsActives: document.getElementById('reparationsActives'),
+  reparationsAFaire: document.getElementById('reparationsAFaire'),
+  reparationsEnAttente: document.getElementById('reparationsEnAttente'),
+  reparationsEnCours: document.getElementById('reparationsEnCours'),
+  reparationsTerminees: document.getElementById('reparationsTerminees'),
   facturesImpayees: document.getElementById('facturesImpayees'),
   slaRetards: document.getElementById('slaRetards'),
   slaAttentions: document.getElementById('slaAttentions'),
   caMois: document.getElementById('caMois'),
   profitTotalDashboard: document.getElementById('profitTotalDashboard'),
   caTotal: document.getElementById('caTotal'),
-  facturesPayeesMontant: document.getElementById('facturesPayeesMontant'),
+  revenusVentesMois: document.getElementById('revenusVentesMois'),
+  revenusReparationsMois: document.getElementById('revenusReparationsMois'),
+  profitVentesMois: document.getElementById('profitVentesMois'),
+  profitReparationsMois: document.getElementById('profitReparationsMois'),
   facturesImpayeesMontant: document.getElementById('facturesImpayeesMontant'),
   stockAlertes: document.getElementById('stockAlertes'),
   slaAlertes: document.getElementById('slaAlertes'),
   reparationsBody: document.getElementById('reparationsDashboardBody'),
   facturesBody: document.getElementById('facturesDashboardBody'),
+  filtrePeriode: document.getElementById('filtrePeriodeDashboard'),
+  filtreMois: document.getElementById('filtreMoisDashboard'),
+  filtreAnnee: document.getElementById('filtreAnneeDashboard'),
+  labelProduitsVendus: document.getElementById('labelProduitsVendus'),
+  labelCaPeriode: document.getElementById('labelCaPeriode'),
+  labelProfitPeriode: document.getElementById('labelProfitPeriode'),
+  titreFinancePeriode: document.getElementById('titreFinancePeriode'),
   ventesProfitChart: document.getElementById('ventesProfitChart'),
+  reparationsProfitChart: document.getElementById('reparationsProfitChart'),
   reparationsStatutChart: document.getElementById('reparationsStatutChart'),
   facturesStatutChart: document.getElementById('facturesStatutChart'),
   stockStatutChart: document.getElementById('stockStatutChart'),
@@ -22,16 +37,62 @@ const elements = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  initialiserFiltrePeriode();
   chargerDashboard();
   elements.btnRefresh.addEventListener('click', chargerDashboard);
+  elements.filtrePeriode.addEventListener('change', () => {
+    synchroniserFiltrePeriode();
+    chargerDashboard();
+  });
+  elements.filtreMois.addEventListener('change', chargerDashboard);
+  elements.filtreAnnee.addEventListener('change', chargerDashboard);
 });
+
+function initialiserFiltrePeriode() {
+  const maintenant = new Date();
+  const mois = [
+    'Janvier',
+    'Fevrier',
+    'Mars',
+    'Avril',
+    'Mai',
+    'Juin',
+    'Juillet',
+    'Aout',
+    'Septembre',
+    'Octobre',
+    'Novembre',
+    'Decembre'
+  ];
+
+  elements.filtreMois.innerHTML = mois
+    .map((label, index) => `<option value="${index + 1}">${label}</option>`)
+    .join('');
+  elements.filtreMois.value = String(maintenant.getMonth() + 1);
+  elements.filtreAnnee.value = String(maintenant.getFullYear());
+  synchroniserFiltrePeriode();
+}
+
+function synchroniserFiltrePeriode() {
+  const modeAnnee = elements.filtrePeriode.value === 'annee';
+  elements.filtreMois.disabled = modeAnnee;
+  elements.labelProduitsVendus.textContent = modeAnnee ? 'Produits vendus cette annee' : 'Produits vendus ce mois';
+  elements.labelCaPeriode.textContent = modeAnnee ? "CA de l'annee" : 'CA du mois';
+  elements.labelProfitPeriode.textContent = modeAnnee ? "Profit de l'annee" : 'Profit du mois';
+  elements.titreFinancePeriode.textContent = modeAnnee ? "Finance de l'annee" : 'Finance du mois';
+}
 
 async function chargerDashboard() {
   elements.btnRefresh.disabled = true;
   elements.btnRefresh.textContent = 'Chargement...';
 
   try {
-    const response = await fetch('/api/dashboard/stats');
+    const params = new URLSearchParams({
+      periode: elements.filtrePeriode.value,
+      mois: elements.filtreMois.value,
+      annee: elements.filtreAnnee.value
+    });
+    const response = await fetch(`/api/dashboard/stats?${params.toString()}`);
     const data = await response.json();
 
     if (!response.ok) throw new Error(data.error || 'Erreur lors du chargement du tableau de bord');
@@ -58,25 +119,31 @@ function afficherIndicateurs(data) {
     + Number(data.reparations.attentePiece || 0)
     + Number(data.reparations.enReparation || 0)
     + Number(data.reparations.pretes || 0);
-  const facturesImpayees = Number(data.factures.emises || 0) + Number(data.factures.envoyees || 0);
 
   elements.produitsDisponibles.textContent = data.produits.disponibles || 0;
-  elements.produitsVendus.textContent = data.produits.vendus || 0;
+  elements.produitsVendus.textContent = data.produits.vendusMois || 0;
   elements.reparationsActives.textContent = reparationsActives;
-  elements.facturesImpayees.textContent = facturesImpayees;
+  elements.reparationsAFaire.textContent = data.reparations.aFaireMois || 0;
+  elements.reparationsEnAttente.textContent = data.reparations.enAttenteMois || 0;
+  elements.reparationsEnCours.textContent = data.reparations.enCoursMois || 0;
+  elements.reparationsTerminees.textContent = data.reparations.termineesMois || 0;
+  elements.facturesImpayees.textContent = data.factures.impayeesMois || 0;
   elements.slaRetards.textContent = data.reparations.sla && data.reparations.sla.retards || 0;
   elements.slaAttentions.textContent = data.reparations.sla && data.reparations.sla.attentions || 0;
   elements.caMois.textContent = formatMontant(data.finance.chiffreAffairesMois);
-  elements.profitTotalDashboard.textContent = formatMontant(data.finance.profitTotal);
-  elements.caTotal.textContent = formatMontant(data.finance.chiffreAffaires);
-  elements.facturesPayeesMontant.textContent = formatMontant(data.factures.totalPaye);
-  elements.facturesImpayeesMontant.textContent = formatMontant(data.factures.totalImpaye);
+  elements.profitTotalDashboard.textContent = formatMontant(data.finance.profitMois);
+  elements.revenusVentesMois.textContent = formatMontant(data.finance.chiffreAffairesVentesMois);
+  elements.revenusReparationsMois.textContent = formatMontant(data.finance.chiffreAffairesReparationsMois);
+  elements.caTotal.textContent = formatMontant(data.finance.chiffreAffairesMois);
+  elements.profitVentesMois.textContent = formatMontant(data.finance.profitVentesMois);
+  elements.profitReparationsMois.textContent = formatMontant(data.finance.profitReparationsMois);
+  elements.facturesImpayeesMontant.textContent = formatMontant(data.factures.totalImpayeMois);
 }
 
 function afficherAlertesStock(produits) {
   const alertes = [
     `${produits.pourPieces || 0} produit(s) pour pieces`,
-    `${produits.sansImei || 0} produit(s) sans IMEI`,
+    `${produits.sansImei || 0} produit(s) sans numero de serie`,
     `${produits.sansPrixVente || 0} produit(s) sans prix de vente`
   ];
 
@@ -105,6 +172,7 @@ function afficherAlertesSla(sla) {
 
 function afficherGraphiques(graphiques) {
   afficherVentesProfit(graphiques.ventesParMois || []);
+  afficherReparationsProfit(graphiques.reparationsProfitParMois || []);
   afficherBarresStatut(elements.reparationsStatutChart, graphiques.reparationsParStatut || []);
   afficherBarresStatut(elements.facturesStatutChart, graphiques.facturesParStatut || []);
   afficherBarresStatut(elements.stockStatutChart, graphiques.stockParStatut || []);
@@ -241,6 +309,41 @@ function afficherFactures(factures) {
       telechargerFacture(button.dataset.downloadFacture, button.dataset.taxes === 'true')
         .catch(err => alert(err.message || 'Erreur lors du telechargement'));
     });
+  });
+}
+
+function afficherReparationsProfit(mois) {
+  elements.reparationsProfitChart.innerHTML = '';
+
+  if (!mois.length) {
+    elements.reparationsProfitChart.innerHTML = '<p class="empty-chart">Aucune donnee disponible.</p>';
+    return;
+  }
+
+  const maximumMontant = Math.max(
+    ...mois.map(item => Number(item.chiffreAffaires || 0)),
+    ...mois.map(item => Number(item.profit || 0)),
+    1
+  );
+  const maximumNombre = Math.max(...mois.map(item => Number(item.nombre || 0)), 1);
+
+  mois.forEach(item => {
+    const ca = Number(item.chiffreAffaires || 0);
+    const profit = Math.max(Number(item.profit || 0), 0);
+    const nombre = Number(item.nombre || 0);
+    const colonne = document.createElement('div');
+    colonne.className = 'chart-month';
+    colonne.innerHTML = `
+      <div class="chart-bars">
+        <span class="bar bar-ca" style="height:${hauteurBarre(ca, maximumMontant)}%" title="Revenus: ${formatMontant(ca)}"></span>
+        <span class="bar bar-profit" style="height:${hauteurBarre(profit, maximumMontant)}%" title="Profit: ${formatMontant(profit)}"></span>
+        <span class="bar bar-count" style="height:${hauteurBarre(nombre, maximumNombre)}%" title="Reparations: ${nombre}"></span>
+      </div>
+      <strong>${echapperHtml(item.label || '')}</strong>
+      <small>${formatMontant(ca)} - ${nombre} rep.</small>
+    `;
+
+    elements.reparationsProfitChart.appendChild(colonne);
   });
 }
 

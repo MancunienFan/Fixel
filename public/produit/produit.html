@@ -9,13 +9,17 @@
 </head>
 
 <body>
-  <nav id="navbar"></nav>
+  <nav id="sidebar"></nav>
 
-  <div class="container">
+  <main class="main-content container">
    
     <h1>Produit</h1>
 
     <form id="form-produit">
+      <div class="device-detect-panel">
+        <button type="button" id="btn-detecter-telephone">Détecter le téléphone branché</button>
+        <p id="device-detect-message" class="device-detect-message" aria-live="polite"></p>
+      </div>
 
       <div class="champ">
         <label>Produit
@@ -65,7 +69,7 @@
       </label>
     </div>
      <div class="champ" id="champ-imei">
-      <label>Imei
+      <label>Numéro de série
         <input type="text" name="imei">
       </label>
      </div>
@@ -106,7 +110,7 @@
       </div>
 
     </form>
-  </div>
+  </main>
 
   <div class="container" id="reparations-container" style="display: none;">
     <h2>Réparations</h2>
@@ -128,7 +132,7 @@
 
 
   <script src="produit.js"></script>
-     <script src="../navbar.js"></script>
+     <script src="../sidebar.js"></script>
 </body>
 
 </html>

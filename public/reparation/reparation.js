@@ -2,6 +2,7 @@ const API_BASE_URL = window.location.origin;
 const params = new URLSearchParams(window.location.search);
 const reparationId = params.get('id');
 const produitId = params.get('produit');
+const retourListe = params.get('retour') === 'liste';
 const roleUtilisateur = localStorage.getItem('role') || '';
 let reparationCourante = null;
 
@@ -97,7 +98,9 @@ document.getElementById('btn-delete').addEventListener('click', async () => {
 
   if (res.ok) {
     alert('Reparation supprimee !');
-    window.location.href = `../produit/produit.html?id=${produitId}`;
+    window.location.href = produitId && !retourListe
+      ? `../produit/produit.html?id=${produitId}`
+      : './reparations.html';
   } else {
     const err = await res.json().catch(() => ({}));
     alert('Erreur lors de la suppression : ' + (err.erreur || err.error || 'Erreur inconnue'));
@@ -105,10 +108,10 @@ document.getElementById('btn-delete').addEventListener('click', async () => {
 });
 
 document.getElementById('btn-retour').addEventListener('click', () => {
-  if (produitId) {
+  if (produitId && !retourListe) {
     window.location.href = `../produit/produit.html?id=${produitId}`;
   } else {
-    alert('Impossible de revenir au produit : ID manquant.');
+    window.location.href = './reparations.html';
   }
 });
 

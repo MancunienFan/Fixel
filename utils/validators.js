@@ -11,7 +11,7 @@ function nettoyerTexteMinuscule(valeur) {
 
 function nettoyerImei(valeur) {
   const texte = nettoyerTexte(valeur);
-  return texte ? texte.replace(/\s+/g, '') : undefined;
+  return texte ? texte.replace(/\s+/g, '').toUpperCase() : undefined;
 }
 
 function emailValide(valeur) {
@@ -27,7 +27,7 @@ function telephoneValide(valeur) {
 
 function imeiValide(valeur) {
   if (!valeur) return true;
-  return /^\d{15}$/.test(valeur);
+  return /^[A-Z0-9._-]{5,64}$/i.test(valeur);
 }
 
 module.exports = {

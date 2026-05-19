@@ -8,7 +8,9 @@
 
 </head>
 <body>
-  <div class="container">
+  <nav id="sidebar"></nav>
+
+  <main class="main-content container">
     <h1>Réparation</h1>
 
     <form id="form-reparation">
@@ -82,15 +84,21 @@
       <input type="hidden" name="produit" id="produitId">
 
       <div class="actions">
-        <button type="submit" id="btn-enregistrer">✅ Enregistrer</button>
-        <button type="button" id="btn-update">🔄 Mettre à jour</button>
-        <button type="button" id="btn-delete">🗑️ Effacer</button>
-        <button type="button" id="btn-retour">⬅️ Retour</button>
+        <button type="submit" id="btn-enregistrer"> Enregistrer</button>
+        <button type="button" id="btn-update"> Mettre à jour</button>
+        <button type="button" id="btn-delete"> Effacer</button>
+        <button type="button" id="btn-retour"> Retour</button>
       </div>
       
     </form>
-  </div>
+  </main>
 
   <script src="reparation.js"></script>
+  <script src="../sidebar.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      checkTokenExpiration();
+    });
+  </script>
 </body>
 </html>

@@ -65,7 +65,7 @@ async function construirePDF(client, produit, reparations, numeroFacture, appliq
 
   doc.text(`Produit: ${produit.nom}`);
   doc.text(`Modèle: ${produit.model}`);
-  doc.text(`IMEI: ${produit.imei || 'N/A'}`);
+  doc.text(`Numero de serie: ${produit.imei || 'N/A'}`);
   doc.moveDown();
 
   doc.fontSize(14).text('Détails des réparations :', { underline: true });

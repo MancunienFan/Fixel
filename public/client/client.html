@@ -9,9 +9,9 @@
 </head>
 
 <body>
-    <nav id="navbar"></nav>
+    <nav id="sidebar"></nav>
 
-  <div class="container">
+  <main class="main-content container">
     <h1>Client</h1>
 
     <form id="form-client">
@@ -49,14 +49,14 @@
       </label>
 
       <div class="actions">
-        <button type="submit" id="submit">✅ Enregistrer</button>
-        <button type="button" onclick="window.location.href='clients.html'">⬅️ Retour</button>
-        <button type="button" id="btn-update" class="btn-warning">✏️ Mise à jour</button>
-        <button type="button" id="btn-delete" class="btn-danger">🗑️ Effacer</button>
-        <button type="button" id="btn-ajout-reparation">➕ Ajouter téléphone</button>
+        <button type="submit" id="submit"> Enregistrer</button>
+        <button type="button" onclick="window.location.href='clients.html'"> Retour</button>
+        <button type="button" id="btn-update" class="btn-warning"> Mise à jour</button>
+        <button type="button" id="btn-delete" class="btn-danger"> Effacer</button>
+        <button type="button" id="btn-ajout-reparation"> Ajouter téléphone</button>
       </div>
     </form>
-  </div>
+  </main>
 
  <div class="sub-container" id="produits-section">
   <h2>Téléphones Réparés</h2>
@@ -67,7 +67,7 @@
         <tr>
           <th>Modèle</th>
           <th>Nom</th>
-          <th>IMEI</th>
+          <th>Numéro de série</th>
           <th>Dernière modification</th>
         </tr>
       </thead>
@@ -82,7 +82,7 @@
 
 
   <script src="client.js"></script>
-  <script src="../navbar.js"></script>
+  <script src="../sidebar.js"></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       checkTokenExpiration();
