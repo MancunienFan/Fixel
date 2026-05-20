@@ -1,5 +1,6 @@
 require('dotenv').config();
 const { sendEmail } = require('../utils/emailSender');
+const { getEmailProvider } = require('../utils/emailSender');
 
 async function main() {
   const to = process.argv[2] || process.env.EMAIL_TEST_TO;
@@ -10,9 +11,9 @@ async function main() {
 
   const result = await sendEmail({
     to,
-    subject: 'Test Gmail Fixel',
-    text: 'Ceci est un test Gmail Fixel.',
-    html: '<p>Ceci est un <strong>test Gmail Fixel</strong>.</p>'
+    subject: getEmailProvider() === 'gmail' ? 'Test Gmail Fixel' : 'Test Mailjet Fixel',
+    text: 'Ceci est un test email Fixel.',
+    html: '<p>Ceci est un <strong>test email Fixel</strong>.</p>'
   });
 
   console.log(JSON.stringify({
