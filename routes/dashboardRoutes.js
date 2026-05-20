@@ -4,6 +4,7 @@ const router = express.Router();
 const Produit = require('../models/produitModel');
 const Reparation = require('../models/reparationModel');
 const Facture = require('../models/Facture');
+const { SavReturn, normaliserStatutSav } = require('../models/savReturnModel');
 const {
   STATUTS_REPARATION_ACTIFS,
   normaliserStatutReparation,
@@ -12,12 +13,14 @@ const {
   calculerSlaReparation
 } = require('../utils/reparationWorkflow');
 
+const STATUTS_SAV_FERMES = ['resolu', 'refuse', 'non couvert par garantie', 'ferme'];
+
 router.get('/stats', async (req, res) => {
   try {
     const periode = lirePeriode(req.query);
     const { debutPeriode, finPeriode } = periode;
 
-    const [produits, reparations, factures, dernieresFactures, reparationsActives] = await Promise.all([
+    const [produits, reparations, factures, dernieresFactures, reparationsActives, retoursSav, retoursSavMois, modelesSav] = await Promise.all([
       Produit.find({ type: 'stock' }).lean(),
       Reparation.find()
         .populate('produit', 'type')
@@ -41,7 +44,31 @@ router.get('/stats', async (req, res) => {
         .populate('client', 'nom prenom telephone')
         .sort({ date: 1 })
         .limit(8)
-        .lean()
+        .lean(),
+      SavReturn.find().select('status realCost returnDate productId').lean(),
+      SavReturn.find({ returnDate: { $gte: debutPeriode, $lt: finPeriode } })
+        .select('status realCost returnDate productId')
+        .lean(),
+      SavReturn.aggregate([
+        {
+          $lookup: {
+            from: 'produits',
+            localField: 'productId',
+            foreignField: '_id',
+            as: 'produit'
+          }
+        },
+        { $unwind: { path: '$produit', preserveNullAndEmptyArrays: true } },
+        {
+          $group: {
+            _id: { $ifNull: ['$produit.model', '$produit.nom'] },
+            total: { $sum: 1 }
+          }
+        },
+        { $match: { _id: { $ne: null } } },
+        { $sort: { total: -1 } },
+        { $limit: 5 }
+      ])
     ]);
 
     const produitsVendus = produits.filter(produit => normaliserTexte(produit.disponibilite) === 'vendu');
@@ -136,6 +163,18 @@ router.get('/stats', async (req, res) => {
         totalImpayeMois,
         totalPaye,
         dernieres: dernieresFactures
+      },
+      sav: {
+        retoursMois: retoursSavMois.length,
+        ouverts: retoursSav.filter(retour => !STATUTS_SAV_FERMES.includes(normaliserStatutSav(retour.status))).length,
+        resolus: retoursSav.filter(retour => normaliserStatutSav(retour.status) === 'resolu').length,
+        refuses: retoursSav.filter(retour => normaliserStatutSav(retour.status) === 'refuse').length,
+        coutTotal: somme(retoursSav.map(retour => retour.realCost)),
+        coutTotalMois: somme(retoursSavMois.map(retour => retour.realCost)),
+        modelesPlusRetournes: modelesSav.map(item => ({
+          modele: item._id,
+          total: item.total
+        }))
       },
       finance: {
         chiffreAffaires,

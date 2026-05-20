@@ -11,6 +11,13 @@ const elements = {
   slaAttentions: document.getElementById('slaAttentions'),
   caMois: document.getElementById('caMois'),
   profitTotalDashboard: document.getElementById('profitTotalDashboard'),
+  savRetoursMois: document.getElementById('savRetoursMois'),
+  savOuverts: document.getElementById('savOuverts'),
+  savResolus: document.getElementById('savResolus'),
+  savCoutMois: document.getElementById('savCoutMois'),
+  savRefuses: document.getElementById('savRefuses'),
+  savCoutTotal: document.getElementById('savCoutTotal'),
+  savModeles: document.getElementById('savModeles'),
   caTotal: document.getElementById('caTotal'),
   revenusVentesMois: document.getElementById('revenusVentesMois'),
   revenusReparationsMois: document.getElementById('revenusReparationsMois'),
@@ -138,6 +145,17 @@ function afficherIndicateurs(data) {
   elements.profitVentesMois.textContent = formatMontant(data.finance.profitVentesMois);
   elements.profitReparationsMois.textContent = formatMontant(data.finance.profitReparationsMois);
   elements.facturesImpayeesMontant.textContent = formatMontant(data.factures.totalImpayeMois);
+
+  const sav = data.sav || {};
+  elements.savRetoursMois.textContent = sav.retoursMois || 0;
+  elements.savOuverts.textContent = sav.ouverts || 0;
+  elements.savResolus.textContent = sav.resolus || 0;
+  elements.savCoutMois.textContent = formatMontant(sav.coutTotalMois);
+  elements.savRefuses.textContent = sav.refuses || 0;
+  elements.savCoutTotal.textContent = formatMontant(sav.coutTotal);
+  elements.savModeles.textContent = Array.isArray(sav.modelesPlusRetournes) && sav.modelesPlusRetournes.length
+    ? sav.modelesPlusRetournes.map(item => `${item.modele} (${item.total})`).join(', ')
+    : '-';
 }
 
 function afficherAlertesStock(produits) {

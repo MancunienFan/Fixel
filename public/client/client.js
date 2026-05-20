@@ -31,6 +31,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
           // ⬇️ Charger les produits associées
       chargerProduits(client._id);
+      chargerRetoursSavClient(client._id);
       })
       .catch(err => {
         alert("Erreur lors du chargement du client. Voir console.");
@@ -154,6 +155,82 @@ function chargerProduits(clientId) {
       section.style.display = 'block';
     })
     .catch(err => console.error('Erreur chargement produits:', err));
+}
+
+function chargerRetoursSavClient(clientId) {
+  fetch(`${API_BASE_URL}/api/sav?clientId=${clientId}`)
+    .then(res => res.json())
+    .then(retours => {
+      if (!Array.isArray(retours) || retours.length === 0) return;
+
+      const section = document.getElementById('sav-section');
+      const tbody = document.getElementById('sav-client-table').querySelector('tbody');
+      tbody.innerHTML = '';
+
+      retours.forEach(retour => {
+        const tr = document.createElement('tr');
+        tr.classList.add('clickable-row');
+        tr.addEventListener('click', () => {
+          window.location.href = `../sav/sav.html?id=${retour._id}`;
+        });
+
+        tr.innerHTML = `
+          <td>${formatSavNumber(retour.savNumber)}</td>
+          <td>${formatDate(retour.returnDate)}</td>
+          <td>${echapperHtml(formatProduitSav(retour.productId))}</td>
+          <td>${echapperHtml(retour.customerIssue || '-')}</td>
+          <td>${echapperHtml(formatGarantieSav(retour))}</td>
+          <td>${echapperHtml(formatStatutSav(retour.status))}</td>
+          <td>${Number(retour.realCost || 0).toFixed(2)} $</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      section.style.display = 'block';
+    })
+    .catch(err => console.error('Erreur chargement SAV client:', err));
+}
+
+function formatSavNumber(numero) {
+  return numero ? `SAV-${String(numero).padStart(4, '0')}` : '-';
+}
+
+function formatProduitSav(produit = {}) {
+  return [produit.nom, produit.model, produit.imei].filter(Boolean).join(' - ') || '-';
+}
+
+function formatGarantieSav(retour) {
+  if (retour.warrantyComputedStatus === 'active') return 'Active';
+  if (retour.warrantyComputedStatus === 'expiree') return 'Expiree';
+  if (retour.warrantyComputedStatus === 'aucune') return 'Aucune';
+  if (retour.warrantyStatus === 'oui') return 'Oui';
+  if (retour.warrantyStatus === 'non') return 'Non';
+  return 'A verifier';
+}
+
+function formatStatutSav(statut) {
+  const libelles = {
+    'nouveau retour': 'Nouveau retour',
+    'en diagnostic': 'En diagnostic',
+    'en attente du client': 'En attente du client',
+    'en attente de piece': 'En attente de piece',
+    'reparation sav en cours': 'Reparation SAV en cours',
+    resolu: 'Resolu',
+    refuse: 'Refuse',
+    'non couvert par garantie': 'Non couvert par garantie',
+    ferme: 'Ferme'
+  };
+  return libelles[statut] || statut || '-';
+}
+
+function echapperHtml(valeur) {
+  return (valeur || '').toString().replace(/[&<>"']/g, caractere => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[caractere]));
 }
   function formatDate(dateString) {
     if (!dateString) return '';

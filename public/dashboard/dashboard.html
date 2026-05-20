@@ -85,6 +85,22 @@
         <span class="metric-label" id="labelProfitPeriode">Profit du mois</span>
         <strong id="profitTotalDashboard">0 $</strong>
       </article>
+      <article class="metric-card metric-card-warning">
+        <span class="metric-label">Retours SAV du mois</span>
+        <strong id="savRetoursMois">0</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Retours SAV ouverts</span>
+        <strong id="savOuverts">0</strong>
+      </article>
+      <article class="metric-card metric-card-profit">
+        <span class="metric-label">Retours SAV resolus</span>
+        <strong id="savResolus">0</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Cout SAV du mois</span>
+        <strong id="savCoutMois">0 $</strong>
+      </article>
     </section>
 
     <section class="charts-grid" aria-label="Graphiques du tableau de bord">
@@ -144,6 +160,15 @@
       <div>
         <h2>SLA reparations</h2>
         <ul class="alert-list" id="slaAlertes"></ul>
+      </div>
+
+      <div>
+        <h2>SAV</h2>
+        <dl class="summary-list">
+          <div><dt>Retours refuses</dt><dd id="savRefuses">0</dd></div>
+          <div><dt>Cout total SAV</dt><dd id="savCoutTotal">0 $</dd></div>
+          <div><dt>Modeles avec le plus de retours</dt><dd id="savModeles">-</dd></div>
+        </dl>
       </div>
     </section>
 

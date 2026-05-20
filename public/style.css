@@ -824,6 +824,59 @@ tfoot td {
   background: rgba(245, 158, 11, 0.1);
 }
 
+.row-sav-garantie-active td {
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.sav-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.sav-detail-panel {
+  padding: 14px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.sav-detail-panel h3 {
+  margin-bottom: 10px;
+}
+
+.sav-detail-panel p {
+  margin: 7px 0;
+}
+
+.sav-detail-wide,
+.sav-detail-actions {
+  grid-column: 1 / -1;
+}
+
+.sav-alert {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  color: var(--label);
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--secondary);
+  border-radius: var(--radius);
+  font-weight: 800;
+}
+
+.sav-alert-success {
+  border-left-color: var(--success);
+}
+
+.sav-alert-warning {
+  border-left-color: var(--warning);
+}
+
+.sav-alert-danger {
+  border-left-color: var(--danger);
+}
+
 .sla-badge {
   display: inline-block;
   min-width: 116px;

@@ -38,6 +38,10 @@ window.addEventListener("DOMContentLoaded", () => {
           <span class="sidebar-link-icon">🛠️</span>
           <span class="sidebar-link-text">Réparations</span>
         </a>
+        <a href="/sav/sav.html" class="sidebar-link" data-icon="SAV">
+          <span class="sidebar-link-icon">SAV</span>
+          <span class="sidebar-link-text">Retours / SAV</span>
+        </a>
         <a href="/admin/utilisateurs.html" class="sidebar-link" data-icon="👥">
           <span class="sidebar-link-icon">👥</span>
           <span class="sidebar-link-text">Utilisateurs</span>

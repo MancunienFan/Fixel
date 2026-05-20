@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Retours / SAV - FixEl</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/auth.js"></script>
+</head>
+
+<body>
+  <nav id="sidebar"></nav>
+
+  <main class="main-content container">
+    <div class="section-header">
+      <div>
+        <h1>Retours / SAV</h1>
+        <p class="section-subtitle">Suivi des retours clients apres vente ou reparation.</p>
+      </div>
+      <div class="dashboard-header-actions">
+        <button type="button" id="btnAjouterSav">Ajouter un retour SAV</button>
+        <button type="button" id="btnRefreshSav">Actualiser</button>
+      </div>
+    </div>
+
+    <section class="filters-panel" aria-label="Filtres SAV">
+      <label>Recherche
+        <input type="search" id="filtreRechercheSav" placeholder="Client, appareil, probleme">
+      </label>
+      <label>Statut
+        <select id="filtreStatutSav">
+          <option value="">Tous</option>
+        </select>
+      </label>
+      <label>Garantie
+        <select id="filtreGarantieSav">
+          <option value="">Toutes</option>
+          <option value="oui">Oui</option>
+          <option value="non">Non</option>
+          <option value="a verifier">A verifier</option>
+        </select>
+      </label>
+      <label>Mois
+        <select id="filtreMoisSav">
+          <option value="">Tous</option>
+          <option value="1">Janvier</option>
+          <option value="2">Fevrier</option>
+          <option value="3">Mars</option>
+          <option value="4">Avril</option>
+          <option value="5">Mai</option>
+          <option value="6">Juin</option>
+          <option value="7">Juillet</option>
+          <option value="8">Aout</option>
+          <option value="9">Septembre</option>
+          <option value="10">Octobre</option>
+          <option value="11">Novembre</option>
+          <option value="12">Decembre</option>
+        </select>
+      </label>
+      <label>Annee
+        <input type="number" id="filtreAnneeSav" min="2000" max="2100" placeholder="Ex. 2026">
+      </label>
+      <div class="filter-actions">
+        <button type="button" id="btnResetFiltresSav">Reinitialiser</button>
+      </div>
+    </section>
+
+    <section class="dashboard-grid" aria-label="Indicateurs SAV">
+      <article class="metric-card">
+        <span class="metric-label">Retours affiches</span>
+        <strong id="savCount">0</strong>
+      </article>
+      <article class="metric-card metric-card-warning">
+        <span class="metric-label">Retours ouverts</span>
+        <strong id="savOuverts">0</strong>
+      </article>
+      <article class="metric-card metric-card-profit">
+        <span class="metric-label">Retours resolus</span>
+        <strong id="savResolus">0</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Cout total affiche</span>
+        <strong id="savCout">0 $</strong>
+      </article>
+    </section>
+
+    <div class="table-container">
+      <table id="savTable">
+        <thead>
+          <tr>
+            <th>No SAV</th>
+            <th>Date retour</th>
+            <th>Client</th>
+            <th>Appareil / produit</th>
+            <th>Type</th>
+            <th>Probleme declare</th>
+            <th>Garantie</th>
+            <th>Statut</th>
+            <th>Cout Fixel</th>
+            <th>Decision</th>
+            <th>Resolution</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="11">Chargement des retours SAV...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <section class="container" id="savDetailSection" style="display: none;">
+    <div class="section-header">
+      <div>
+        <h2 id="savDetailTitre">Retour SAV</h2>
+        <p class="section-subtitle" id="savDetailSousTitre"></p>
+      </div>
+      <button type="button" id="btnFermerDetailSav">Fermer</button>
+    </div>
+    <div id="savWarrantyAlert"></div>
+    <div class="sav-detail-grid" id="savDetailContenu"></div>
+  </section>
+
+  <section class="container" id="savFormSection" style="display: none;">
+    <div class="section-header">
+      <div>
+        <h2 id="savFormTitre">Ajouter un retour SAV</h2>
+        <p class="section-subtitle">Les liens facture, reparation et garantie restent facultatifs.</p>
+      </div>
+      <button type="button" id="btnAnnulerSav">Annuler</button>
+    </div>
+
+    <form id="savForm">
+      <input type="hidden" id="savId" name="savId">
+
+      <label>Client concerne
+        <select id="clientId" name="clientId" required></select>
+      </label>
+
+      <label>Telephone ou produit concerne
+        <select id="productId" name="productId" required></select>
+      </label>
+
+      <label>Reparation liee
+        <select id="repairId" name="repairId">
+          <option value="">Aucune</option>
+        </select>
+      </label>
+
+      <label>Facture liee
+        <select id="invoiceId" name="invoiceId">
+          <option value="">Aucune</option>
+        </select>
+      </label>
+
+      <label>ID garantie liee
+        <input type="text" id="warrantyId" name="warrantyId" placeholder="Facultatif">
+      </label>
+
+      <label>Date du retour
+        <input type="date" id="returnDate" name="returnDate" required>
+      </label>
+
+      <label>Type de retour
+        <select id="returnType" name="returnType" required>
+          <option value="reparation">Apres reparation</option>
+          <option value="vente">Apres vente</option>
+        </select>
+      </label>
+
+      <label>Garantie applicable
+        <select id="warrantyStatus" name="warrantyStatus" required>
+          <option value="a verifier">A verifier</option>
+          <option value="oui">Oui</option>
+          <option value="non">Non</option>
+        </select>
+      </label>
+
+      <label>Date debut garantie
+        <input type="date" id="warrantyStartDate" name="warrantyStartDate">
+      </label>
+
+      <label>Date fin garantie
+        <input type="date" id="warrantyEndDate" name="warrantyEndDate">
+      </label>
+
+      <label>Statut
+        <select id="status" name="status" required></select>
+      </label>
+
+      <label>Decision
+        <select id="decision" name="decision">
+          <option value="a definir">A definir</option>
+          <option value="couvert">Couvert</option>
+          <option value="non couvert">Non couvert</option>
+          <option value="geste commercial">Geste commercial</option>
+          <option value="echange">Echange</option>
+          <option value="remboursement partiel">Remboursement partiel</option>
+          <option value="reparation payante">Reparation payante</option>
+        </select>
+      </label>
+
+      <label>Cout estime pour Fixel
+        <input type="number" id="estimatedCost" name="estimatedCost" min="0" step="0.01">
+      </label>
+
+      <label>Cout reel pour Fixel
+        <input type="number" id="realCost" name="realCost" min="0" step="0.01">
+      </label>
+
+      <label>Date de resolution
+        <input type="date" id="resolutionDate" name="resolutionDate">
+      </label>
+
+      <label style="grid-column: 1 / -1;">Probleme declare par le client
+        <textarea id="customerIssue" name="customerIssue" rows="3" required></textarea>
+      </label>
+
+      <label style="grid-column: 1 / -1;">Description detaillee
+        <textarea id="detailedDescription" name="detailedDescription" rows="4"></textarea>
+      </label>
+
+      <label style="grid-column: 1 / -1;">Photos ou notes
+        <textarea id="photosNotes" name="photosNotes" rows="3" placeholder="Liens, noms de fichiers ou observations"></textarea>
+      </label>
+
+      <label style="grid-column: 1 / -1;">Diagnostic interne
+        <textarea id="internalDiagnosis" name="internalDiagnosis" rows="4"></textarea>
+      </label>
+
+      <label style="grid-column: 1 / -1;">Notes internes
+        <textarea id="internalNotes" name="internalNotes" rows="4"></textarea>
+      </label>
+
+      <label style="grid-column: 1 / -1;">Note de changement de statut
+        <input type="text" id="noteTransition" name="noteTransition" placeholder="Facultatif">
+      </label>
+
+      <div class="actions">
+        <button type="submit" id="btnSauverSav">Enregistrer</button>
+      </div>
+    </form>
+  </section>
+
+  <script src="/sav/sav.js"></script>
+  <script src="/sidebar.js"></script>
+</body>
+
+</html>
