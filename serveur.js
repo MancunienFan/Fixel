@@ -61,6 +61,14 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
+app.use('/api', (req, res) => {
+  res.status(404).json({ message: 'Route API introuvable.' });
+});
+
+app.get('*', (req, res) => {
+  res.redirect('/login/login.html');
+});
+
 // Lancer le serveur
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

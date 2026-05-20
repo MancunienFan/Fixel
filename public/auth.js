@@ -1,14 +1,79 @@
-(function verifierConnexion() {
+const LOGIN_URL = '/login/login.html';
+
+function nettoyerSession() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('role');
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('role');
+
+  ['token', 'authToken', 'jwt', 'role'].forEach(nom => {
+    document.cookie = `${nom}=; Max-Age=0; path=/`;
+    document.cookie = `${nom}=; Max-Age=0; path=/; SameSite=Lax`;
+  });
+}
+
+function redirectLogin() {
+  if (window.location.pathname !== LOGIN_URL) {
+    window.location.replace(LOGIN_URL);
+  }
+}
+
+function logout(options = {}) {
+  nettoyerSession();
+  if (options.message) {
+    alert(options.message);
+  }
+  redirectLogin();
+}
+
+function lirePayloadToken(token) {
+  const partiePayload = token.split('.')[1];
+  if (!partiePayload) {
+    throw new Error('Token invalide.');
+  }
+
+  const base64 = partiePayload.replace(/-/g, '+').replace(/_/g, '/');
+  const base64Complete = base64.padEnd(base64.length + ((4 - base64.length % 4) % 4), '=');
+  return JSON.parse(atob(base64Complete));
+}
+
+function checkTokenExpiration() {
   const token = localStorage.getItem('token');
   if (!token) {
-    window.location.href = '/login/login.html';
+    logout();
+    return false;
   }
-})();
+
+  try {
+    const payload = lirePayloadToken(token);
+    if (!payload.exp) {
+      logout();
+      return false;
+    }
+
+    const expiration = payload.exp * 1000;
+    const tempsRestant = expiration - Date.now();
+
+    if (tempsRestant <= 0) {
+      logout({ message: 'Votre session a expire. Vous allez etre deconnecte.' });
+      return false;
+    }
+
+    window.setTimeout(() => {
+      logout({ message: 'Votre session a expire. Vous allez etre deconnecte.' });
+    }, tempsRestant);
+
+    return true;
+  } catch (e) {
+    logout();
+    return false;
+  }
+}
 
 (function ajouterTokenAuxRequetesApi() {
   const fetchOriginal = window.fetch.bind(window);
 
-  window.fetch = (resource, options = {}) => {
+  window.fetch = async (resource, options = {}) => {
     const url = typeof resource === 'string' ? resource : resource.url;
     const estApiLocale = url && (
       url.startsWith('/api') ||
@@ -26,40 +91,23 @@
       headers.set('Authorization', `Bearer ${token}`);
     }
 
-    return fetchOriginal(resource, {
+    const response = await fetchOriginal(resource, {
       ...options,
       headers
     });
+
+    if (response.status === 401 || response.status === 403) {
+      logout();
+    }
+
+    return response;
   };
 })();
 
-function logout() {
-  localStorage.removeItem('token');
-  localStorage.removeItem('role');
-  alert('Votre session a expire. Vous allez etre deconnecte.');
-  window.location.href = '/login/login.html';
-}
+window.FixelAuth = {
+  checkTokenExpiration,
+  logout,
+  redirectLogin
+};
 
-function checkTokenExpiration() {
-  const token = localStorage.getItem('token');
-  if (!token) {
-    window.location.href = '/login/login.html';
-    return;
-  }
-
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const expiration = payload.exp * 1000;
-    const now = Date.now();
-
-    if (now >= expiration) {
-      logout();
-    } else {
-      setTimeout(() => {
-        logout();
-      }, expiration - now);
-    }
-  } catch (e) {
-    logout();
-  }
-}
+checkTokenExpiration();

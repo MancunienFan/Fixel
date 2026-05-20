@@ -137,7 +137,14 @@ function initialiserThemeToggle() {
 }
 
 function logout() {
+  if (window.FixelAuth) {
+    window.FixelAuth.logout();
+    return;
+  }
+
   localStorage.removeItem('token');
   localStorage.removeItem('role');
-  window.location.href = './login/login.html';
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('role');
+  window.location.href = '/login/login.html';
 }

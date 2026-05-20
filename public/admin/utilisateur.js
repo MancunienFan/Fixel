@@ -3,7 +3,7 @@ const token = localStorage.getItem('token');
 
         if (!token || role !== 'admin') {
             alert("Accès réservé aux administrateurs.");
-            window.location.href = '../login/login.html';
+            window.location.href = '/login/login.html';
         }
 
         fetch('/api/utilisateurs/liste', {
@@ -32,9 +32,16 @@ const token = localStorage.getItem('token');
             });
 
         function logout() {
+            if (window.FixelAuth) {
+                window.FixelAuth.logout();
+                return;
+            }
+
             localStorage.removeItem('token');
             localStorage.removeItem('role');
-            window.location.href = '../login/login.html';
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('role');
+            window.location.href = '/login/login.html';
         }
 
         async function changerRole(id, role) {

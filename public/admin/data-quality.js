@@ -3,7 +3,7 @@ const role = localStorage.getItem('role');
 
 if (!token || role !== 'admin') {
   alert('Acces reserve aux administrateurs.');
-  window.location.href = '../login/login.html';
+  window.location.href = '/login/login.html';
 }
 
 const state = {

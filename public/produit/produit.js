@@ -10,7 +10,7 @@ const btnDetecterTelephone = document.getElementById('btn-detecter-telephone');
 const messageDetection = document.getElementById('device-detect-message');
 
 if (!token) {
-  window.location.href = '/login.html';
+  window.location.href = '/login/login.html';
 } else if (role !== 'admin' && role !== 'mod') {
   alert("Accès refusé.");
   window.location.href = '/index.html';
