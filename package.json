@@ -6,7 +6,8 @@
     "start": "node serveur.js",
     "dev": "nodemon serveur.js",
     "data:quality": "node scripts/dataQuality.js",
-    "data:quality:fix": "node scripts/dataQuality.js --fix"
+    "data:quality:fix": "node scripts/dataQuality.js --fix",
+    "test:email": "node scripts/testEmail.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -15,7 +16,6 @@
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.0.0",
-    "node-mailjet": "^6.0.9",
     "node-notifier": "^10.0.1",
     "nodemailer": "^7.0.5",
     "pdfkit": "^0.17.1"

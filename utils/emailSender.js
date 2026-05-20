@@ -1,63 +1,131 @@
 require('dotenv').config();
-const mailjet = require('node-mailjet')
-  .apiConnect(process.env.MJ_APIKEY_PUBLIC, process.env.MJ_APIKEY_PRIVATE);
+const nodemailer = require('nodemailer');
 
-const envoyerFacture = async (destinataireEmail, nomClient, pdfBuffer, nomFichierPDF) => {
-  if (!process.env.EMAIL_FROM || !process.env.EMAIL_NAME) {
-    throw new Error("Variables d'environnement EMAIL_FROM ou EMAIL_NAME manquantes.");
+let transporter;
+
+function getEmailConfig() {
+  const user = process.env.GMAIL_USER || process.env.EMAIL_FROM;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  const fromName = process.env.GMAIL_FROM_NAME || process.env.EMAIL_NAME || 'Fixel';
+  const fromAddress = process.env.GMAIL_USER || process.env.EMAIL_FROM || process.env.FIXEL_EMAIL;
+  const replyTo = process.env.GMAIL_REPLY_TO || fromAddress;
+
+  return {
+    user,
+    pass,
+    fromName,
+    fromAddress,
+    replyTo
+  };
+}
+
+function getTransporter() {
+  if (transporter) return transporter;
+
+  const config = getEmailConfig();
+  if (!config.user) {
+    throw new Error('Variable GMAIL_USER ou EMAIL_FROM manquante.');
   }
+  if (!config.pass) {
+    throw new Error('Variable GMAIL_APP_PASSWORD manquante.');
+  }
+
+  transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: {
+      user: config.user,
+      pass: config.pass
+    }
+  });
+
+  return transporter;
+}
+
+function buildFromHeader() {
+  const config = getEmailConfig();
+  if (!config.fromAddress) {
+    throw new Error('Adresse expediteur manquante.');
+  }
+
+  return `${config.fromName} <${config.fromAddress}>`;
+}
+
+async function sendEmail({ to, subject, text, html, attachments, replyTo } = {}) {
+  if (!to) {
+    throw new Error('Destinataire email manquant.');
+  }
+  if (!subject) {
+    throw new Error('Sujet email manquant.');
+  }
+  if (!text && !html) {
+    throw new Error('Contenu email manquant.');
+  }
+
+  try {
+    const info = await getTransporter().sendMail({
+      from: buildFromHeader(),
+      to,
+      subject,
+      text,
+      html,
+      attachments: Array.isArray(attachments) ? attachments : undefined,
+      replyTo: replyTo || getEmailConfig().replyTo
+    });
+
+    return {
+      success: true,
+      provider: 'gmail',
+      messageId: info.messageId,
+      accepted: info.accepted,
+      rejected: info.rejected
+    };
+  } catch (err) {
+    const erreur = new Error(`Erreur d'envoi email Gmail: ${err.message}`);
+    erreur.code = err.code;
+    throw erreur;
+  }
+}
+
+async function envoyerFacture(destinataireEmail, nomClient, pdfBuffer, nomFichierPDF) {
   if (!destinataireEmail) {
-    throw new Error("Email destinataire manquant.");
+    throw new Error('Email destinataire manquant.');
   }
   if (!pdfBuffer || !Buffer.isBuffer(pdfBuffer)) {
     throw new Error("pdfBuffer est manquant ou n'est pas un Buffer valide.");
   }
 
-  // Optionnel : s'assurer que nomFichierPDF finit par .pdf
-  if (!nomFichierPDF) nomFichierPDF = "facture.pdf";
-  else if (!nomFichierPDF.toLowerCase().endsWith('.pdf')) nomFichierPDF += '.pdf';
+  let filename = nomFichierPDF || 'facture.pdf';
+  if (!filename.toLowerCase().endsWith('.pdf')) filename += '.pdf';
 
-  console.log(`Envoi du PDF de taille : ${pdfBuffer.length} octets à ${destinataireEmail}`);
+  return sendEmail({
+    to: destinataireEmail,
+    subject: 'Votre facture FixEl',
+    text: 'Bonjour, veuillez trouver en piece jointe votre facture FixEl.',
+    html: `
+      <p>Bonjour ${echapperHtml(nomClient || 'Client')},</p>
+      <p>Veuillez trouver en piece jointe votre facture FixEl.</p>
+      <p>Merci.</p>
+    `,
+    attachments: [
+      {
+        filename,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      }
+    ]
+  });
+}
 
-  try {
-    const request = await mailjet
-      .post("send", { version: "v3.1" })
-      .request({
-        Messages: [
-          {
-            From: {
-              Email: process.env.EMAIL_FROM,
-              Name: process.env.EMAIL_NAME,
-            },
-            To: [
-              {
-                Email: destinataireEmail,
-                Name: nomClient || "Client",
-              },
-            ],
-            Subject: "Votre facture FixEl",
-            TextPart: "Bonjour, veuillez trouver en pièce jointe votre facture FixEl.",
-            Attachments: [
-              {
-                ContentType: "application/pdf",
-                Filename: nomFichierPDF,
-                Base64Content: pdfBuffer.toString("base64"),
-              },
-            ],
-          },
-        ],
-      });
-
-    console.log("Email envoyé avec succès !");
-    return request.body;
-  } catch (err) {
-    if (err.response && err.response.body) {
-      console.error("Erreur d'envoi de l'email :", JSON.stringify(err.response.body, null, 2));
-    } else {
-      console.error("Erreur d'envoi de l'email :", err);
-    }
-    throw err;
-  }
-};
+function echapperHtml(valeur) {
+  return String(valeur)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 module.exports = envoyerFacture;
+module.exports.sendEmail = sendEmail;

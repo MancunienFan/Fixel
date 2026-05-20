@@ -118,7 +118,7 @@ router.post('/', async (req, res) => {
       _id: facture._id
     });
   } catch (error) {
-    console.error('Erreur facture :', error);
+    console.error('Erreur facture :', error.message);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
