@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Acces refuse - FixEl</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/auth.js"></script>
+</head>
+
+<body>
+  <nav id="sidebar"></nav>
+
+  <main class="main-content container">
+    <h1>Acces refuse</h1>
+    <p class="section-subtitle">Vous n'avez pas les droits necessaires pour acceder a cette page.</p>
+    <div class="actions">
+      <button type="button" id="btn-retour-role">Retour</button>
+    </div>
+  </main>
+
+  <script>
+    document.getElementById('btn-retour-role').addEventListener('click', () => {
+      const role = localStorage.getItem('role');
+      window.location.href = role === 'admin' ? '/index.html' : '/atelier/atelier.html';
+    });
+  </script>
+  <script src="/sidebar.js"></script>
+</body>
+
+</html>

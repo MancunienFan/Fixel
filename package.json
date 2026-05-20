@@ -7,7 +7,8 @@
     "dev": "nodemon serveur.js",
     "data:quality": "node scripts/dataQuality.js",
     "data:quality:fix": "node scripts/dataQuality.js --fix",
-    "test:email": "node scripts/testEmail.js"
+    "test:email": "node scripts/testEmail.js",
+    "admin:ensure-active": "node scripts/ensureAdminActive.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

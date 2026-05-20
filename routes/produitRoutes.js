@@ -6,12 +6,13 @@ const Reparation = require('../models/reparationModel');
 const Facture = require('../models/Facture');
 const Client = require('../models/clientModel');
 const { SavReturn } = require('../models/savReturnModel');
+const { requirePermission, requireRole } = require('../middleware/permissions');
 
 function idInvalide(id) {
   return !mongoose.Types.ObjectId.isValid(id);
 }
 
-router.get('/produits', async (req, res) => {
+router.get('/produits', requirePermission('produits', 'read'), async (req, res) => {
   try {
     const produits = await Produit.find({ type: 'stock' }).sort({ dateachat: -1 });
     res.json(produits);
@@ -21,7 +22,7 @@ router.get('/produits', async (req, res) => {
   }
 });
 
-router.post('/produits', async (req, res) => {
+router.post('/produits', requireRole('admin'), async (req, res) => {
   try {
     const produit = new Produit({
       ...req.body,
@@ -34,7 +35,7 @@ router.post('/produits', async (req, res) => {
   }
 });
 
-router.get('/produits/:id', async (req, res) => {
+router.get('/produits/:id', requirePermission('produits', 'read'), async (req, res) => {
   try {
     if (idInvalide(req.params.id)) {
       return res.status(400).json({ erreur: 'ID produit invalide.' });
@@ -47,7 +48,7 @@ router.get('/produits/:id', async (req, res) => {
   }
 });
 
-router.get('/produit/:id', async (req, res) => {
+router.get('/produit/:id', requirePermission('produits', 'read'), async (req, res) => {
   try {
     if (idInvalide(req.params.id)) {
       return res.status(400).json({ erreur: 'ID produit invalide.' });
@@ -61,7 +62,7 @@ router.get('/produit/:id', async (req, res) => {
   }
 });
 
-router.put('/produit/:id', async (req, res) => {
+router.put('/produit/:id', requireRole('admin'), async (req, res) => {
   try {
     if (idInvalide(req.params.id)) {
       return res.status(400).json({ erreur: 'ID produit invalide.' });
@@ -85,7 +86,7 @@ router.put('/produit/:id', async (req, res) => {
   }
 });
 
-router.delete('/produit/:id', async (req, res) => {
+router.delete('/produit/:id', requireRole('admin'), async (req, res) => {
   try {
     if (idInvalide(req.params.id)) {
       return res.status(400).json({ erreur: 'ID produit invalide.' });
@@ -113,7 +114,7 @@ router.delete('/produit/:id', async (req, res) => {
   }
 });
 
-router.get('/produits/client/:clientId', async (req, res) => {
+router.get('/produits/client/:clientId', requirePermission('produits', 'read'), async (req, res) => {
   try {
     if (idInvalide(req.params.clientId)) {
       return res.status(400).json({ erreur: 'ID client invalide.' });
@@ -130,7 +131,7 @@ router.get('/produits/client/:clientId', async (req, res) => {
   }
 });
 
-router.post('/produits/client/:clientId', async (req, res) => {
+router.post('/produits/client/:clientId', requireRole('admin'), async (req, res) => {
   try {
     if (idInvalide(req.params.clientId)) {
       return res.status(400).json({ erreur: 'ID client invalide.' });

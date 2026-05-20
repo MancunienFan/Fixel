@@ -5,6 +5,7 @@ const Produit = require('../models/produitModel');
 const Reparation = require('../models/reparationModel');
 const Facture = require('../models/Facture');
 const { SavReturn, normaliserStatutSav } = require('../models/savReturnModel');
+const { requireRole } = require('../middleware/permissions');
 const {
   STATUTS_REPARATION_ACTIFS,
   normaliserStatutReparation,
@@ -15,7 +16,7 @@ const {
 
 const STATUTS_SAV_FERMES = ['resolu', 'refuse', 'non couvert par garantie', 'ferme'];
 
-router.get('/stats', async (req, res) => {
+router.get('/stats', requireRole('admin'), async (req, res) => {
   try {
     const periode = lirePeriode(req.query);
     const { debutPeriode, finPeriode } = periode;

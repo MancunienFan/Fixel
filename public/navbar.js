@@ -10,11 +10,17 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (!navbar) return;
 
+  const liensOperationnels = `
+      <a href="/atelier/atelier.html">Atelier</a>
+      <a href="/reparation/reparations.html">Reparations</a>
+      <a href="/sav/sav.html">Retours / SAV</a>
+  `;
+
   navbar.innerHTML = `
     <div class="navbar-links">
-      <a href="/index.html">Accueil</a>
+      ${role === 'admin' ? '<a href="/index.html">Accueil</a>' : ''}
       ${role === 'admin' ? '<a href="/dashboard/dashboard.html">Tableau de bord</a>' : ''}
-      ${role === 'admin' ? '<a href="/atelier/atelier.html">Atelier</a>' : ''}
+      ${role === 'admin' ? liensOperationnels : liensOperationnels}
       ${role === 'admin' ? '<a href="/admin/utilisateurs.html">Utilisateurs</a>' : ''}
       ${role === 'admin' ? '<a href="/admin/data-quality.html">Qualite donnees</a>' : ''}
       ${role === 'admin' ? '<a href="/client/clients.html">Clients</a>' : ''}

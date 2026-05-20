@@ -6,8 +6,9 @@ const Produit = require('../models/produitModel');
 const Reparation = require('../models/reparationModel');
 const Facture = require('../models/Facture');
 const { SavReturn } = require('../models/savReturnModel');
+const { requirePermission, requireRole } = require('../middleware/permissions');
 
-router.get('/', async (req, res) => {
+router.get('/', requirePermission('clients', 'read'), async (req, res) => {
   try {
     const clients = await Client.find().sort({ dateModification: -1 });
     res.json(clients);
@@ -16,7 +17,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', requirePermission('clients', 'read'), async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ erreur: 'ID client invalide.' });
@@ -30,7 +31,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireRole('admin'), async (req, res) => {
   try {
     const { nom, prenom, telephone, email, notes } = req.body;
     if (!nom || !prenom || !telephone) {
@@ -45,7 +46,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireRole('admin'), async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ erreur: 'ID client invalide.' });
@@ -64,7 +65,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireRole('admin'), async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ erreur: 'ID client invalide.' });

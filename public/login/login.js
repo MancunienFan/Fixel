@@ -17,7 +17,7 @@
         localStorage.setItem('token', data.token);
         localStorage.setItem('role', data.role);
         
-        window.location.href = '/index.html';
+        window.location.href = data.role === 'admin' ? '/index.html' : '/atelier/atelier.html';
       } else {
         alert(data.erreur);
       }

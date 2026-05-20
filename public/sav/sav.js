@@ -11,6 +11,8 @@ const STATUTS_SAV = [
 ];
 
 const STATUTS_FERMES = ['resolu', 'refuse', 'non couvert par garantie', 'ferme'];
+const roleUtilisateur = localStorage.getItem('role') || '';
+const modeConsultation = roleUtilisateur === 'consultant';
 
 let savCache = [];
 let clientsCache = [];
@@ -45,9 +47,17 @@ const elements = {
 document.addEventListener('DOMContentLoaded', () => {
   initialiserStatuts();
   initialiserDates();
+  appliquerModeConsultation();
   brancherEvenements();
   chargerDonneesInitiales();
 });
+
+function appliquerModeConsultation() {
+  if (!modeConsultation) return;
+
+  if (elements.btnAjouter) elements.btnAjouter.style.display = 'none';
+  if (elements.formSection) elements.formSection.style.display = 'none';
+}
 
 function initialiserStatuts() {
   const options = STATUTS_SAV
@@ -78,7 +88,9 @@ function brancherEvenements() {
   });
 
   elements.btnRefresh.addEventListener('click', chargerSav);
-  elements.btnAjouter.addEventListener('click', () => ouvrirFormulaire());
+  elements.btnAjouter.addEventListener('click', () => {
+    if (!modeConsultation) ouvrirFormulaire();
+  });
   document.getElementById('btnAnnulerSav').addEventListener('click', fermerFormulaire);
   document.getElementById('btnFermerDetailSav').addEventListener('click', fermerDetail);
   document.getElementById('clientId').addEventListener('change', synchroniserRelations);
@@ -280,7 +292,10 @@ async function ouvrirDetail(id) {
   elements.warrantyAlert.innerHTML = construireAlerteGarantie(retour);
   elements.detailContenu.innerHTML = construireDetail(retour);
 
-  document.getElementById('btnModifierSavDetail').addEventListener('click', () => ouvrirFormulaire(retour));
+  const boutonModifier = document.getElementById('btnModifierSavDetail');
+  if (boutonModifier) {
+    boutonModifier.addEventListener('click', () => ouvrirFormulaire(retour));
+  }
   elements.detailSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -341,13 +356,20 @@ function construireDetail(retour) {
       <p>Resolution: ${formatDate(retour.resolutionDate)}</p>
       <p>Fermeture: ${formatDate(retour.closedAt)}</p>
     </div>
-    <div class="actions sav-detail-actions">
-      <button type="button" id="btnModifierSavDetail" class="btn-warning">Modifier</button>
-    </div>
+    ${modeConsultation ? '' : `
+      <div class="actions sav-detail-actions">
+        <button type="button" id="btnModifierSavDetail" class="btn-warning">Modifier</button>
+      </div>
+    `}
   `;
 }
 
 function ouvrirFormulaire(retour = null) {
+  if (modeConsultation) {
+    alert('Mode consultation: modification non autorisee.');
+    return;
+  }
+
   elements.formSection.style.display = 'block';
   elements.detailSection.style.display = 'none';
   elements.form.reset();
@@ -388,6 +410,11 @@ function fermerDetail() {
 
 async function sauvegarderSav(event) {
   event.preventDefault();
+
+  if (modeConsultation) {
+    alert('Mode consultation: enregistrement non autorise.');
+    return;
+  }
 
   const formData = new FormData(elements.form);
   const data = {};

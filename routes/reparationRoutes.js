@@ -12,12 +12,13 @@ const {
   libelleStatutReparation,
   calculerSlaReparation
 } = require('../utils/reparationWorkflow');
+const { requirePermission } = require('../middleware/permissions');
 
 function idInvalide(id) {
   return !mongoose.Types.ObjectId.isValid(id);
 }
 
-router.get('/reparations/produit/:id', async (req, res) => {
+router.get('/reparations/produit/:id', requirePermission('reparations', 'read'), async (req, res) => {
   try {
     if (idInvalide(req.params.id)) {
       return res.status(400).json({ erreur: 'ID produit invalide.' });
@@ -30,7 +31,7 @@ router.get('/reparations/produit/:id', async (req, res) => {
   }
 });
 
-router.get('/reparations/atelier', async (req, res) => {
+router.get('/reparations/atelier', requirePermission('atelier', 'read'), async (req, res) => {
   try {
     const reparations = await Reparation.find({ statut: { $nin: ['livre', 'livree', 'annule', 'annulee'] } })
       .populate({
@@ -83,7 +84,7 @@ router.get('/reparations/atelier', async (req, res) => {
   }
 });
 
-router.post('/reparation', async (req, res) => {
+router.post('/reparation', requirePermission('reparations', 'create'), async (req, res) => {
   try {
     const reparation = await creerReparationDepuisBody(req.body, req.utilisateur);
     await reparation.save();
@@ -94,7 +95,7 @@ router.post('/reparation', async (req, res) => {
   }
 });
 
-router.get('/reparations/:id', async (req, res) => {
+router.get('/reparations/:id', requirePermission('reparations', 'read'), async (req, res) => {
   try {
     if (idInvalide(req.params.id)) {
       return res.status(400).json({ erreur: 'ID reparation invalide.' });
@@ -108,7 +109,7 @@ router.get('/reparations/:id', async (req, res) => {
   }
 });
 
-router.put('/reparations/:id', async (req, res) => {
+router.put('/reparations/:id', requirePermission('reparations', 'update'), async (req, res) => {
   try {
     if (idInvalide(req.params.id)) {
       return res.status(400).json({ erreur: 'ID reparation invalide.' });
@@ -157,7 +158,7 @@ router.put('/reparations/:id', async (req, res) => {
   }
 });
 
-router.delete('/reparations/:id', async (req, res) => {
+router.delete('/reparations/:id', requirePermission('reparations', 'delete'), async (req, res) => {
   try {
     if (idInvalide(req.params.id)) {
       return res.status(400).json({ erreur: 'ID reparation invalide.' });
@@ -187,7 +188,7 @@ router.delete('/reparations/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requirePermission('reparations', 'create'), async (req, res) => {
   try {
     const reparation = await creerReparationDepuisBody(req.body, req.utilisateur);
     await reparation.save();
@@ -216,10 +217,10 @@ async function listerReparations(req, res) {
   }
 }
 
-router.get('/reparations', listerReparations);
-router.get('/', listerReparations);
+router.get('/reparations', requirePermission('reparations', 'read'), listerReparations);
+router.get('/', requirePermission('reparations', 'read'), listerReparations);
 
-router.get('/client/:clientId', async (req, res) => {
+router.get('/client/:clientId', requirePermission('reparations', 'read'), async (req, res) => {
   try {
     if (idInvalide(req.params.clientId)) {
       return res.status(400).json({ erreur: 'ID client invalide.' });

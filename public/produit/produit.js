@@ -11,7 +11,7 @@ const messageDetection = document.getElementById('device-detect-message');
 
 if (!token) {
   window.location.href = '/login/login.html';
-} else if (role !== 'admin' && role !== 'mod') {
+} else if (role !== 'admin') {
   alert("Accès refusé.");
   window.location.href = '/index.html';
 }

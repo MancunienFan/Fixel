@@ -63,10 +63,29 @@ function checkTokenExpiration() {
       logout({ message: 'Votre session a expire. Vous allez etre deconnecte.' });
     }, tempsRestant);
 
+    appliquerAccesPage(payload.role);
     return true;
   } catch (e) {
     logout();
     return false;
+  }
+}
+
+function appliquerAccesPage(role) {
+  const chemin = window.location.pathname;
+
+  if (chemin.startsWith('/login/') || chemin === '/acces-refuse.html') return;
+  if (role === 'admin') return;
+
+  const pagesAutorisees = [
+    '/atelier/atelier.html',
+    '/reparation/reparations.html',
+    '/reparation/reparation.html',
+    '/sav/sav.html'
+  ];
+
+  if (!pagesAutorisees.includes(chemin)) {
+    window.location.replace('/acces-refuse.html');
   }
 }
 
@@ -106,6 +125,7 @@ function checkTokenExpiration() {
 
 window.FixelAuth = {
   checkTokenExpiration,
+  appliquerAccesPage,
   logout,
   redirectLogin
 };

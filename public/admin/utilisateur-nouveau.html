@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Inviter utilisateur - FixEl</title>
+  <link rel="stylesheet" href="../style.css">
+  <script src="/auth.js"></script>
+</head>
+
+<body>
+  <nav id="sidebar"></nav>
+
+  <main class="main-content container">
+    <div class="section-header">
+      <div>
+        <h1>Inviter utilisateur</h1>
+        <p class="section-subtitle">Envoyer un lien sécurisé pour créer le mot de passe.</p>
+      </div>
+    </div>
+
+    <form id="form-ajout-utilisateur">
+      <label>Nom complet
+        <input type="text" id="nom" name="nom" required minlength="2" maxlength="80">
+      </label>
+
+      <label>Email
+        <input type="email" id="email" name="email" required>
+      </label>
+
+      <label>Role
+        <select id="role" name="role" required>
+          <option value="">Choisir un role</option>
+          <option value="admin">Admin</option>
+          <option value="mod">Moderateur</option>
+          <option value="consultant">Consultant</option>
+        </select>
+      </label>
+
+      <div class="actions">
+        <button type="submit">Envoyer l'invitation</button>
+        <button type="button" id="btn-retour-utilisateurs">Retour</button>
+      </div>
+    </form>
+  </main>
+
+  <script src="utilisateur-nouveau.js"></script>
+  <script src="../sidebar.js"></script>
+</body>
+
+</html>

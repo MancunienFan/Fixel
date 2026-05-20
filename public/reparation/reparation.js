@@ -4,6 +4,7 @@ const reparationId = params.get('id');
 const produitId = params.get('produit');
 const retourListe = params.get('retour') === 'liste';
 const roleUtilisateur = localStorage.getItem('role') || '';
+const modeConsultation = roleUtilisateur === 'consultant';
 let reparationCourante = null;
 
 const champsDatesWorkflow = [
@@ -27,6 +28,8 @@ const transitionsReparation = {
 };
 
 document.getElementById('produitId').value = produitId || '';
+
+appliquerModeConsultation();
 
 if (!reparationId) {
   document.getElementById('btn-update').style.display = 'none';
@@ -64,6 +67,11 @@ if (reparationId) {
 document.getElementById('form-reparation').addEventListener('submit', async (e) => {
   e.preventDefault();
 
+  if (modeConsultation) {
+    alert('Mode consultation: creation non autorisee.');
+    return;
+  }
+
   if (!confirm("Confirmer l'enregistrement de cette reparation ?")) return;
 
   const formData = new FormData(e.target);
@@ -90,6 +98,11 @@ document.getElementById('btn-update').addEventListener('click', async () => {
 });
 
 document.getElementById('btn-delete').addEventListener('click', async () => {
+  if (modeConsultation) {
+    alert('Mode consultation: suppression non autorisee.');
+    return;
+  }
+
   if (!confirm('Confirmer la suppression ?')) return;
 
   const res = await fetch(`${API_BASE_URL}/api/reparations/${reparationId}`, {
@@ -131,6 +144,11 @@ function normaliserStatut(valeur) {
 }
 
 async function mettreAJourReparation(statutForce) {
+  if (modeConsultation) {
+    alert('Mode consultation: modification non autorisee.');
+    return;
+  }
+
   const statutAvant = normaliserStatut(reparationCourante && reparationCourante.statut);
   const statutApres = normaliserStatut(statutForce || document.getElementById('statut').value);
 
@@ -179,12 +197,30 @@ function afficherActionsWorkflow(reparation) {
     return;
   }
 
+  if (modeConsultation) {
+    conteneur.textContent = 'Mode consultation: actions desactivees.';
+    return;
+  }
+
   prochainsStatuts.forEach(prochainStatut => {
     const bouton = document.createElement('button');
     bouton.type = 'button';
     bouton.textContent = libelleActionStatut(prochainStatut);
     bouton.addEventListener('click', () => mettreAJourReparation(prochainStatut));
     conteneur.appendChild(bouton);
+  });
+}
+
+function appliquerModeConsultation() {
+  if (!modeConsultation) return;
+
+  ['btn-enregistrer', 'btn-update', 'btn-delete'].forEach(id => {
+    const bouton = document.getElementById(id);
+    if (bouton) bouton.style.display = 'none';
+  });
+
+  document.querySelectorAll('#form-reparation input, #form-reparation select, #form-reparation textarea').forEach(champ => {
+    if (champ.id !== 'produitId') champ.disabled = true;
   });
 }
 

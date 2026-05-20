@@ -65,6 +65,10 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
+app.get('/invitation/accept', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/invitation/accept.html'));
+});
+
 app.use('/api', (req, res) => {
   res.status(404).json({ message: 'Route API introuvable.' });
 });

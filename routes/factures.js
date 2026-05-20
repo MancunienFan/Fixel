@@ -10,8 +10,9 @@ const envoyerFactureParEmail = require('../utils/emailSender');
 const Client = require('../models/clientModel');
 const Produit = require('../models/produitModel');
 const Reparation = require('../models/reparationModel');
+const { requirePermission, requireRole } = require('../middleware/permissions');
 
-router.get('/', async (req, res) => {
+router.get('/', requirePermission('factures', 'read'), async (req, res) => {
   try {
     const factures = await Facture.find()
       .populate('client', 'nom prenom email telephone')
@@ -25,7 +26,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireRole('admin'), async (req, res) => {
   try {
     const { clientId, produitId, reparationIds, inclureTaxes, envoyerParMail } = req.body;
     const appliquerTaxes = inclureTaxes === true || inclureTaxes === 'true';
@@ -123,7 +124,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id/statut', async (req, res) => {
+router.put('/:id/statut', requireRole('admin'), async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ error: 'ID facture invalide' });
@@ -156,7 +157,7 @@ router.put('/:id/statut', async (req, res) => {
   }
 });
 
-router.get('/:id/pdf', async (req, res) => {
+router.get('/:id/pdf', requirePermission('factures', 'read'), async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).send('ID facture invalide');

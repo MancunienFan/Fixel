@@ -7,6 +7,7 @@ const Client = require('../models/clientModel');
 const Produit = require('../models/produitModel');
 const Reparation = require('../models/reparationModel');
 const Facture = require('../models/Facture');
+const { requirePermission } = require('../middleware/permissions');
 
 const STATUTS_FERMES = ['resolu', 'refuse', 'non couvert par garantie', 'ferme'];
 
@@ -14,14 +15,14 @@ function idInvalide(id) {
   return id && !mongoose.Types.ObjectId.isValid(id);
 }
 
-router.get('/meta', (req, res) => {
+router.get('/meta', requirePermission('sav', 'read'), (req, res) => {
   res.json({
     statuts: STATUTS_SAV,
     statutsFermes: STATUTS_FERMES
   });
 });
 
-router.get('/stats', async (req, res) => {
+router.get('/stats', requirePermission('sav', 'read'), async (req, res) => {
   try {
     const periode = lirePeriode(req.query);
     const filtrePeriode = { returnDate: { $gte: periode.debutPeriode, $lt: periode.finPeriode } };
@@ -76,7 +77,7 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-router.get('/', async (req, res) => {
+router.get('/', requirePermission('sav', 'read'), async (req, res) => {
   try {
     const filtre = construireFiltre(req.query);
     const retours = await SavReturn.find(filtre)
@@ -93,7 +94,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requirePermission('sav', 'create'), async (req, res) => {
   try {
     const payload = await preparerPayloadSav(req.body);
     const retour = new SavReturn(payload);
@@ -116,7 +117,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', requirePermission('sav', 'read'), async (req, res) => {
   try {
     if (idInvalide(req.params.id)) {
       return res.status(400).json({ erreur: 'ID retour SAV invalide.' });
@@ -131,7 +132,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requirePermission('sav', 'update'), async (req, res) => {
   try {
     if (idInvalide(req.params.id)) {
       return res.status(400).json({ erreur: 'ID retour SAV invalide.' });

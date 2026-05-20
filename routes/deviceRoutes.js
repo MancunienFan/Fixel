@@ -1,12 +1,13 @@
 const express = require('express');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
+const { requireRole } = require('../middleware/permissions');
 
 const router = express.Router();
 const execFileAsync = promisify(execFile);
 const COMMANDE_TIMEOUT_MS = 5000;
 
-router.get('/detect', async (req, res) => {
+router.get('/detect', requireRole('admin'), async (req, res) => {
   const tentatives = [];
 
   const android = await detecterAndroid();

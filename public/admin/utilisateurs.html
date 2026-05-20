@@ -2,33 +2,45 @@
 <html lang="fr">
 
 <head>
-    <meta charset="UTF-8">
-    <title>Gestion des utilisateurs</title>
-      <link rel="stylesheet" href="../style.css">
-    <script src="/auth.js"></script>
-
+  <meta charset="UTF-8">
+  <title>Gestion des utilisateurs</title>
+  <link rel="stylesheet" href="../style.css">
+  <script src="/auth.js"></script>
 </head>
 
 <body>
-    <nav id="sidebar"></nav>
-    <main class="main-content container">
-    <h2>Gestion des utilisateurs</h2>
-    <table id="utilisateur-table">
+  <nav id="sidebar"></nav>
+
+  <main class="main-content container">
+    <div class="section-header">
+      <div>
+        <h1>Gestion des utilisateurs</h1>
+        <p class="section-subtitle">Comptes, roles et statut d'acces.</p>
+      </div>
+      <button type="button" id="btn-ajouter-utilisateur">Inviter utilisateur</button>
+    </div>
+
+    <div class="table-container">
+      <table id="utilisateur-table">
         <thead>
-            <tr>
-                <th>Nom</th>
-                <th>Email</th>
-                <th>Rôle</th>
-                <th>Actions</th>
-            </tr>
+          <tr>
+            <th>Nom</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Statut</th>
+            <th>Date d'invitation</th>
+            <th>Date d'activation</th>
+            <th>Derniere connexion</th>
+            <th>Actions</th>
+          </tr>
         </thead>
         <tbody></tbody>
-    </table>
-    </main>
+      </table>
+    </div>
+  </main>
 
-
-    <script src="utilisateur.js"></script>
-    <script src="../sidebar.js"></script>
+  <script src="utilisateur.js"></script>
+  <script src="../sidebar.js"></script>
 </body>
 
 </html>

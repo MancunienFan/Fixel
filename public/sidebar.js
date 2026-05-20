@@ -13,6 +13,21 @@ window.addEventListener("DOMContentLoaded", () => {
   // Récupérer l'état du menu depuis localStorage
   const menuOuvert = localStorage.getItem('sidebarOpen') !== 'false';
 
+  const liensOperationnels = `
+    <a href="/atelier/atelier.html" class="sidebar-link" data-icon="🔧">
+      <span class="sidebar-link-icon">🔧</span>
+      <span class="sidebar-link-text">Atelier</span>
+    </a>
+    <a href="/reparation/reparations.html" class="sidebar-link" data-icon="🛠️">
+      <span class="sidebar-link-icon">🛠️</span>
+      <span class="sidebar-link-text">Réparations</span>
+    </a>
+    <a href="/sav/sav.html" class="sidebar-link" data-icon="SAV">
+      <span class="sidebar-link-icon">SAV</span>
+      <span class="sidebar-link-text">Retours / SAV</span>
+    </a>
+  `;
+
   sidebar.innerHTML = `
     <div class="sidebar-header">
       <span class="sidebar-logo">FixEl</span>
@@ -21,27 +36,16 @@ window.addEventListener("DOMContentLoaded", () => {
       </button>
     </div>
     <nav class="sidebar-nav">
-      <a href="/index.html" class="sidebar-link" data-icon="🏠">
+      ${role === 'admin' ? `<a href="/index.html" class="sidebar-link" data-icon="🏠">
         <span class="sidebar-link-icon">🏠</span>
         <span class="sidebar-link-text">Accueil</span>
-      </a>
+      </a>` : ''}
       ${role === 'admin' ? `
         <a href="/dashboard/dashboard.html" class="sidebar-link" data-icon="📊">
           <span class="sidebar-link-icon">📊</span>
           <span class="sidebar-link-text">Tableau de bord</span>
         </a>
-        <a href="/atelier/atelier.html" class="sidebar-link" data-icon="🔧">
-          <span class="sidebar-link-icon">🔧</span>
-          <span class="sidebar-link-text">Atelier</span>
-        </a>
-        <a href="/reparation/reparations.html" class="sidebar-link" data-icon="🛠️">
-          <span class="sidebar-link-icon">🛠️</span>
-          <span class="sidebar-link-text">Réparations</span>
-        </a>
-        <a href="/sav/sav.html" class="sidebar-link" data-icon="SAV">
-          <span class="sidebar-link-icon">SAV</span>
-          <span class="sidebar-link-text">Retours / SAV</span>
-        </a>
+        ${liensOperationnels}
         <a href="/admin/utilisateurs.html" class="sidebar-link" data-icon="👥">
           <span class="sidebar-link-icon">👥</span>
           <span class="sidebar-link-text">Utilisateurs</span>
@@ -62,7 +66,7 @@ window.addEventListener("DOMContentLoaded", () => {
           <span class="sidebar-link-icon">📄</span>
           <span class="sidebar-link-text">Facture</span>
         </a>
-      ` : ''}
+      ` : liensOperationnels}
       <a href="#" onclick="logout()" class="sidebar-link sidebar-link-logout" data-icon="🚪">
         <span class="sidebar-link-icon">🚪</span>
         <span class="sidebar-link-text">Déconnexion</span>
