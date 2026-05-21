@@ -27,10 +27,13 @@ function normaliserStatut(valeur) {
 function normaliserDisponibilite(valeur) {
   const texte = corrigerMojibake(valeur);
   if (!texte) return undefined;
-  const minuscule = texte.toLowerCase();
+  const minuscule = texte
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
   if (minuscule === 'disponible') return 'disponible';
-  if (minuscule === 'vendu') return 'vendu';
-  if (minuscule === 'pour pi\u00e8ces') return 'Pour pi\u00e8ces';
+  if (minuscule === 'vendu' || minuscule === 'sold') return 'vendu';
+  if (minuscule === 'pour pieces') return 'Pour pi\u00e8ces';
   return texte;
 }
 
@@ -140,12 +143,48 @@ produitSchema.pre('validate', function (next) {
     this.datevente = new Date();
   }
 
+  if (this.disponibilite !== 'vendu') {
+    this.datevente = null;
+  }
+
   next();
 });
 
-produitSchema.pre('findOneAndUpdate', function (next) {
-  this.set({ datemodification: new Date() });
-  next();
+produitSchema.pre('findOneAndUpdate', async function (next) {
+  const update = this.getUpdate() || {};
+  const utiliseOperateur = Object.keys(update).some(cle => cle.startsWith('$'));
+  const updateDirect = utiliseOperateur ? { ...(update.$set || {}) } : update;
+  const datemodification = new Date();
+  const disponibilitePresente = Object.prototype.hasOwnProperty.call(updateDirect, 'disponibilite');
+
+  try {
+    updateDirect.datemodification = datemodification;
+
+    if (disponibilitePresente) {
+      const produitExistant = await this.model.findOne(this.getQuery()).select('disponibilite datevente');
+      const ancienneDisponibilite = normaliserDisponibilite(produitExistant && produitExistant.disponibilite);
+      const nouvelleDisponibilite = normaliserDisponibilite(updateDirect.disponibilite);
+
+      if (nouvelleDisponibilite === 'vendu') {
+        updateDirect.datevente = ancienneDisponibilite === 'vendu' && produitExistant && produitExistant.datevente
+          ? produitExistant.datevente
+          : datemodification;
+      } else {
+        updateDirect.datevente = null;
+      }
+    }
+
+    if (utiliseOperateur) {
+      update.$set = updateDirect;
+      this.setUpdate(update);
+    } else {
+      this.setUpdate(updateDirect);
+    }
+
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
 produitSchema.virtual('dateachatFormatee').get(function () {

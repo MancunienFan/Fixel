@@ -212,13 +212,14 @@ function afficherVentesProfit(mois) {
 
   mois.forEach(item => {
     const ca = Number(item.chiffreAffaires || 0);
-    const profit = Math.max(Number(item.profit || 0), 0);
+    const profit = Number(item.profit || 0);
+    const hauteurProfit = Math.max(profit, 0);
     const colonne = document.createElement('div');
     colonne.className = 'chart-month';
     colonne.innerHTML = `
       <div class="chart-bars">
         <span class="bar bar-ca" style="height:${hauteurBarre(ca, maximum)}%" title="CA: ${formatMontant(ca)}"></span>
-        <span class="bar bar-profit" style="height:${hauteurBarre(profit, maximum)}%" title="Profit: ${formatMontant(profit)}"></span>
+        <span class="bar bar-profit" style="height:${hauteurBarre(hauteurProfit, maximum)}%" title="Profit: ${formatMontant(profit)}"></span>
       </div>
       <strong>${echapperHtml(item.label || '')}</strong>
       <small>${formatMontant(ca)}</small>
@@ -347,14 +348,15 @@ function afficherReparationsProfit(mois) {
 
   mois.forEach(item => {
     const ca = Number(item.chiffreAffaires || 0);
-    const profit = Math.max(Number(item.profit || 0), 0);
+    const profit = Number(item.profit || 0);
+    const hauteurProfit = Math.max(profit, 0);
     const nombre = Number(item.nombre || 0);
     const colonne = document.createElement('div');
     colonne.className = 'chart-month';
     colonne.innerHTML = `
       <div class="chart-bars">
         <span class="bar bar-ca" style="height:${hauteurBarre(ca, maximumMontant)}%" title="Revenus: ${formatMontant(ca)}"></span>
-        <span class="bar bar-profit" style="height:${hauteurBarre(profit, maximumMontant)}%" title="Profit: ${formatMontant(profit)}"></span>
+        <span class="bar bar-profit" style="height:${hauteurBarre(hauteurProfit, maximumMontant)}%" title="Profit: ${formatMontant(profit)}"></span>
         <span class="bar bar-count" style="height:${hauteurBarre(nombre, maximumNombre)}%" title="Reparations: ${nombre}"></span>
       </div>
       <strong>${echapperHtml(item.label || '')}</strong>

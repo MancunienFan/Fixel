@@ -119,6 +119,10 @@ router.put('/reparations/:id', requirePermission('reparations', 'update'), async
       return res.status(400).json({ erreur: 'Prix invalide.' });
     }
 
+    if (req.body.coutPiece !== undefined && req.body.coutPiece !== '' && Number.isNaN(Number(req.body.coutPiece))) {
+      return res.status(400).json({ erreur: 'Cout de la piece invalide.' });
+    }
+
     const reparation = await Reparation.findById(req.params.id);
     if (!reparation) {
       return res.status(404).json({ erreur: 'Reparation introuvable.' });
@@ -236,7 +240,7 @@ router.get('/client/:clientId', requirePermission('reparations', 'read'), async 
 module.exports = router;
 
 async function creerReparationDepuisBody(body, utilisateur) {
-  const { produit, client, description, date, prix, statut, notes } = body;
+  const { produit, client, description, date, prix, coutPiece, statut, notes } = body;
 
   if (!produit || idInvalide(produit)) {
     const err = new Error('ID du produit requis ou invalide.');
@@ -266,6 +270,7 @@ async function creerReparationDepuisBody(body, utilisateur) {
     description,
     date: date || new Date(),
     prix: Number(prix),
+    coutPiece: montant(coutPiece),
     statut: statutNormalise,
     notes: notes || '',
     historiqueStatuts: [{
@@ -288,6 +293,14 @@ function preparerUpdateReparation(body, reparationExistante) {
   delete updateData.historiqueStatuts;
   delete updateData.noteTransition;
 
+  if (updateData.prix !== undefined) {
+    updateData.prix = Number(updateData.prix);
+  }
+
+  if (updateData.coutPiece !== undefined) {
+    updateData.coutPiece = montant(updateData.coutPiece);
+  }
+
   if (updateData.statut) {
     updateData.statut = normaliserStatutReparation(updateData.statut);
     const champDateStatut = champDatePourStatut(updateData.statut);
@@ -297,4 +310,10 @@ function preparerUpdateReparation(body, reparationExistante) {
   }
 
   return updateData;
+}
+
+function montant(valeur) {
+  if (valeur === '' || valeur === null || valeur === undefined) return 0;
+  const nombre = Number.parseFloat(valeur);
+  return Number.isFinite(nombre) ? nombre : 0;
 }

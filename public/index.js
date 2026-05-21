@@ -149,7 +149,7 @@ function afficherProduits(produits) {
       window.location.href = `./produit/produit.html?id=${produit._id}`;
     };
 
-    const estVendu = produit.disponibilite && produit.disponibilite.toLowerCase() === 'vendu';
+    const estVendu = normaliserStatut(produit.disponibilite) === 'vendu';
 
     tr.innerHTML = `
       <td>${produit.nom || ''}</td>
@@ -174,7 +174,7 @@ function afficherProduits(produits) {
 }
 
 function lireDateProduit(produit, champ) {
-  if (champ === 'datevente' && produit.disponibilite !== 'vendu') return null;
+  if (champ === 'datevente' && normaliserStatut(produit.disponibilite) !== 'vendu') return null;
 
   const valeur = produit[champ];
   if (!valeur) return null;
@@ -196,7 +196,7 @@ function finJour(dateString) {
 function formatDate(valeur) {
   if (!valeur) return '';
   const date = new Date(valeur);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('fr-CA');
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('fr-FR');
 }
 
 function formatMontant(valeur) {
@@ -217,7 +217,7 @@ function normaliserStatut(statut) {
   const valeur = normaliserTexte(statut);
 
   if (valeur === 'disponible') return 'disponible';
-  if (valeur === 'vendu') return 'vendu';
+  if (valeur === 'vendu' || valeur === 'sold') return 'vendu';
   if (valeur.includes('piece')) return 'pieces';
   return valeur;
 }

@@ -36,6 +36,11 @@ const ReparationSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  coutPiece: {
+    type: Number,
+    min: 0,
+    default: 0
+  },
   statut: {
     type: String,
     enum: STATUTS_REPARATION,

@@ -46,9 +46,9 @@ router.get('/stats', requireRole('admin'), async (req, res) => {
         .sort({ date: 1 })
         .limit(8)
         .lean(),
-      SavReturn.find().select('status realCost returnDate productId').lean(),
+      SavReturn.find().select('status realCost returnDate resolutionDate closedAt createdAt updatedAt productId').lean(),
       SavReturn.find({ returnDate: { $gte: debutPeriode, $lt: finPeriode } })
-        .select('status realCost returnDate productId')
+        .select('status realCost returnDate resolutionDate closedAt createdAt updatedAt productId')
         .lean(),
       SavReturn.aggregate([
         {
@@ -72,8 +72,13 @@ router.get('/stats', requireRole('admin'), async (req, res) => {
       ])
     ]);
 
-    const produitsVendus = produits.filter(produit => normaliserTexte(produit.disponibilite) === 'vendu');
-    const produitsVendusMois = produitsVendus.filter(produit => estDansPeriode(produit.datevente, debutPeriode, finPeriode));
+    const produitsVendus = produits
+      .filter(produit => normaliserTexte(produit.disponibilite) === 'vendu')
+      .map(produit => ({
+        ...produit,
+        dateVenteDashboard: dateReferenceVenteProduit(produit)
+      }));
+    const produitsVendusMois = produitsVendus.filter(produit => estDansPeriode(produit.dateVenteDashboard, debutPeriode, finPeriode));
     const produitsDisponibles = produits.filter(produit => normaliserTexte(produit.disponibilite) === 'disponible');
     const produitsPourPieces = produits.filter(produit => normaliserTexte(produit.disponibilite).includes('piece'));
 
@@ -97,6 +102,8 @@ router.get('/stats', requireRole('admin'), async (req, res) => {
     const profitReparations = somme(reparationsAvecRevenu.map(reparation => reparation.profit));
     const chiffreAffairesReparationsMois = somme(reparationsTermineesMois.map(reparation => reparation.revenu));
     const profitReparationsMois = somme(reparationsTermineesMois.map(reparation => reparation.profit));
+    const coutSav = somme(retoursSav.map(retour => retour.realCost));
+    const coutSavMois = somme(retoursSavMois.map(retour => retour.realCost));
     const chiffreAffaires = chiffreAffairesVentes + chiffreAffairesReparations;
     const profitTotal = profitVentes + profitReparations;
     const chiffreAffairesMois = chiffreAffairesVentesMois + chiffreAffairesReparationsMois;
@@ -170,8 +177,8 @@ router.get('/stats', requireRole('admin'), async (req, res) => {
         ouverts: retoursSav.filter(retour => !STATUTS_SAV_FERMES.includes(normaliserStatutSav(retour.status))).length,
         resolus: retoursSav.filter(retour => normaliserStatutSav(retour.status) === 'resolu').length,
         refuses: retoursSav.filter(retour => normaliserStatutSav(retour.status) === 'refuse').length,
-        coutTotal: somme(retoursSav.map(retour => retour.realCost)),
-        coutTotalMois: somme(retoursSavMois.map(retour => retour.realCost)),
+        coutTotal: coutSav,
+        coutTotalMois: coutSavMois,
         modelesPlusRetournes: modelesSav.map(item => ({
           modele: item._id,
           total: item.total
@@ -184,6 +191,7 @@ router.get('/stats', requireRole('admin'), async (req, res) => {
         chiffreAffairesMois,
         profitVentesMois,
         profitReparationsMois,
+        coutSavMois,
         profitMois,
         profitTotal
       },
@@ -214,11 +222,16 @@ router.get('/stats', requireRole('admin'), async (req, res) => {
 });
 
 function somme(valeurs) {
-  return valeurs.reduce((total, valeur) => total + Number(valeur || 0), 0);
+  return valeurs.reduce((total, valeur) => total + montant(valeur), 0);
 }
 
 function totalFacture(facture) {
-  return Number(facture.totalTTC || facture.totalHT || 0);
+  return montant(facture.totalTTC || facture.totalHT);
+}
+
+function montant(valeur) {
+  const nombre = Number.parseFloat(valeur);
+  return Number.isFinite(nombre) ? nombre : 0;
 }
 
 function lirePeriode(query) {
@@ -279,16 +292,17 @@ function calculerVentesParMois(produitsVendus, dateReference = new Date()) {
   }
 
   produitsVendus.forEach(produit => {
-    if (!produit.datevente) return;
+    const dateReferenceVente = produit.dateVenteDashboard || dateReferenceVenteProduit(produit);
+    if (!dateReferenceVente) return;
 
-    const dateVente = new Date(produit.datevente);
+    const dateVente = new Date(dateReferenceVente);
     if (Number.isNaN(dateVente.getTime())) return;
 
     const cle = cleMois(dateVente);
     const moisTrouve = mois.find(item => item.cle === cle);
     if (!moisTrouve) return;
 
-    moisTrouve.chiffreAffaires += Number(produit.prixvente || 0);
+    moisTrouve.chiffreAffaires += montant(produit.prixvente);
     moisTrouve.profit += calculerProfitProduit(produit);
     moisTrouve.nombre += 1;
   });
@@ -319,8 +333,8 @@ function calculerReparationsParMois(reparations, dateReference = new Date()) {
       const moisTrouve = mois.find(item => item.cle === cleMois(dateRevenu));
       if (!moisTrouve) return;
 
-      moisTrouve.chiffreAffaires += Number(reparation.revenu || 0);
-      moisTrouve.profit += Number(reparation.profit || 0);
+      moisTrouve.chiffreAffaires += montant(reparation.revenu);
+      moisTrouve.profit += montant(reparation.profit);
       moisTrouve.nombre += 1;
     });
 
@@ -328,7 +342,7 @@ function calculerReparationsParMois(reparations, dateReference = new Date()) {
 }
 
 function calculerProfitProduit(produit) {
-  return Number(produit.prixvente || 0) - Number(produit.prixachat || 0);
+  return montant(produit.prixvente) - montant(produit.prixachat);
 }
 
 function indexerFacturesParReparation(factures) {
@@ -363,7 +377,8 @@ function ajouterRevenuReparation(reparation, factureParReparation) {
     || statut === 'pret'
   );
   const estProduitClient = reparation.produit && reparation.produit.type === 'client';
-  const revenu = estComptabilisable && estProduitClient ? Number(reparation.prix || 0) : 0;
+  const revenu = estComptabilisable && estProduitClient ? montant(reparation.prix) : 0;
+  const cout = calculerCoutReparation(reparation);
 
   return {
     ...reparation,
@@ -372,8 +387,20 @@ function ajouterRevenuReparation(reparation, factureParReparation) {
     estComptabilisable,
     estProduitClient,
     revenu,
-    profit: revenu
+    profit: revenu - cout
   };
+}
+
+function calculerCoutReparation(reparation) {
+  const couts = [
+    reparation.coutPiece,
+    reparation.coutPieces,
+    reparation.coutPiecesTotal,
+    reparation.coutTotal,
+    reparation.cout
+  ];
+
+  return somme(couts);
 }
 
 function dateReferenceRevenuReparation(reparation, facture) {
@@ -386,6 +413,25 @@ function dateReferenceRevenuReparation(reparation, facture) {
   ].filter(Boolean);
 
   return premiereDateValide(candidats);
+}
+
+function dateReferenceVenteProduit(produit) {
+  return premiereDateValide([
+    produit.datevente,
+    produit.soldAt,
+    produit.dateVente,
+    produit.venduLe
+  ]);
+}
+
+function dateReferenceSav(retour) {
+  return premiereDateValide([
+    retour.returnDate,
+    retour.resolutionDate,
+    retour.closedAt,
+    retour.updatedAt,
+    retour.createdAt
+  ]);
 }
 
 function dateReferenceFacture(facture) {
