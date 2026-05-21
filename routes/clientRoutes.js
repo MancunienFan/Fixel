@@ -5,6 +5,7 @@ const Client = require('../models/clientModel');
 const Produit = require('../models/produitModel');
 const Reparation = require('../models/reparationModel');
 const Facture = require('../models/Facture');
+const Sale = require('../models/Sale');
 const { SavReturn } = require('../models/savReturnModel');
 const { requirePermission, requireRole } = require('../middleware/permissions');
 
@@ -74,16 +75,17 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
     const client = await Client.findById(req.params.id);
     if (!client) return res.status(404).json({ erreur: 'Client introuvable.' });
 
-    const [produitLie, reparationLiee, factureLiee, savLie] = await Promise.all([
+    const [produitLie, reparationLiee, factureLiee, venteLiee, savLie] = await Promise.all([
       Produit.exists({ clientId: req.params.id }),
       Reparation.exists({ client: req.params.id }),
       Facture.exists({ client: req.params.id }),
+      Sale.exists({ client: req.params.id }),
       SavReturn.exists({ clientId: req.params.id })
     ]);
 
-    if (produitLie || reparationLiee || factureLiee || savLie) {
+    if (produitLie || reparationLiee || factureLiee || venteLiee || savLie) {
       return res.status(409).json({
-        erreur: 'Impossible de supprimer ce client: il est lie a des produits, reparations, factures ou retours SAV.'
+        erreur: 'Impossible de supprimer ce client: il est lie a des produits, reparations, factures, ventes ou retours SAV.'
       });
     }
 

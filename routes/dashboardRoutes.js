@@ -4,6 +4,7 @@ const router = express.Router();
 const Produit = require('../models/produitModel');
 const Reparation = require('../models/reparationModel');
 const Facture = require('../models/Facture');
+const Sale = require('../models/Sale');
 const { SavReturn, normaliserStatutSav } = require('../models/savReturnModel');
 const { requireRole } = require('../middleware/permissions');
 const {
@@ -21,12 +22,18 @@ router.get('/stats', requireRole('admin'), async (req, res) => {
     const periode = lirePeriode(req.query);
     const { debutPeriode, finPeriode } = periode;
 
-    const [produits, reparations, factures, dernieresFactures, reparationsActives, retoursSav, retoursSavMois, modelesSav] = await Promise.all([
+    const [produits, reparations, factures, ventes, dernieresFactures, reparationsActives, retoursSav, retoursSavMois, modelesSav] = await Promise.all([
       Produit.find({ type: 'stock' }).lean(),
       Reparation.find()
         .populate('produit', 'type')
         .lean(),
       Facture.find().lean(),
+      Sale.find({
+        statut: { $ne: 'annulee' },
+        statutVente: { $ne: 'annulee' },
+        deletedAt: null,
+        annuleeLe: null
+      }).lean(),
       Facture.find()
         .populate('client', 'nom prenom email telephone')
         .populate('produit', 'nom model imei')
@@ -72,13 +79,17 @@ router.get('/stats', requireRole('admin'), async (req, res) => {
       ])
     ]);
 
-    const produitsVendus = produits
+    const produitsVendusLegacy = produits
       .filter(produit => normaliserTexte(produit.disponibilite) === 'vendu')
+      .filter(produit => !produit.venteId)
       .map(produit => ({
         ...produit,
         dateVenteDashboard: dateReferenceVenteProduit(produit)
       }));
-    const produitsVendusMois = produitsVendus.filter(produit => estDansPeriode(produit.dateVenteDashboard, debutPeriode, finPeriode));
+    const nombreProduitsVendus = produits.filter(produit => normaliserTexte(produit.disponibilite) === 'vendu').length;
+    const ventesMois = ventes.filter(vente => estDansPeriode(vente.dateVente, debutPeriode, finPeriode));
+    const produitsVendusLegacyMois = produitsVendusLegacy.filter(produit => estDansPeriode(produit.dateVenteDashboard, debutPeriode, finPeriode));
+    const produitsVendusMois = compterProduitsVendusDansVentes(ventesMois) + produitsVendusLegacyMois.length;
     const produitsDisponibles = produits.filter(produit => normaliserTexte(produit.disponibilite) === 'disponible');
     const produitsPourPieces = produits.filter(produit => normaliserTexte(produit.disponibilite).includes('piece'));
 
@@ -94,10 +105,10 @@ router.get('/stats', requireRole('admin'), async (req, res) => {
     ));
     const reparationsTermineesMois = reparationsAvecRevenuMois.filter(reparation => reparation.estComptabilisable);
 
-    const chiffreAffairesVentes = somme(produitsVendus.map(produit => produit.prixvente));
-    const profitVentes = somme(produitsVendus.map(produit => calculerProfitProduit(produit)));
-    const chiffreAffairesVentesMois = somme(produitsVendusMois.map(produit => produit.prixvente));
-    const profitVentesMois = somme(produitsVendusMois.map(produit => calculerProfitProduit(produit)));
+    const chiffreAffairesVentes = somme(ventes.map(chiffreAffairesVente)) + somme(produitsVendusLegacy.map(produit => produit.prixvente));
+    const profitVentes = somme(ventes.map(vente => vente.profitTotal)) + somme(produitsVendusLegacy.map(produit => calculerProfitProduit(produit)));
+    const chiffreAffairesVentesMois = somme(ventesMois.map(chiffreAffairesVente)) + somme(produitsVendusLegacyMois.map(produit => produit.prixvente));
+    const profitVentesMois = somme(ventesMois.map(vente => vente.profitTotal)) + somme(produitsVendusLegacyMois.map(produit => calculerProfitProduit(produit)));
     const chiffreAffairesReparations = somme(reparationsAvecRevenu.map(reparation => reparation.revenu));
     const profitReparations = somme(reparationsAvecRevenu.map(reparation => reparation.profit));
     const chiffreAffairesReparationsMois = somme(reparationsTermineesMois.map(reparation => reparation.revenu));
@@ -109,7 +120,7 @@ router.get('/stats', requireRole('admin'), async (req, res) => {
     const chiffreAffairesMois = chiffreAffairesVentesMois + chiffreAffairesReparationsMois;
     const profitMois = profitVentesMois + profitReparationsMois;
 
-    const ventesParMois = calculerVentesParMois(produitsVendus, periode.dateReference);
+    const ventesParMois = calculerVentesParMois(ventes, produitsVendusLegacy, periode.dateReference);
     const reparationsProfitParMois = calculerReparationsParMois(reparationsAvecRevenu, periode.dateReference);
     const repartitionsReparations = compterReparationsParStatut(reparations);
     const repartitionsReparationsMois = compterReparationsParStatut(
@@ -136,8 +147,8 @@ router.get('/stats', requireRole('admin'), async (req, res) => {
       produits: {
         total: produits.length,
         disponibles: produitsDisponibles.length,
-        vendus: produitsVendus.length,
-        vendusMois: produitsVendusMois.length,
+        vendus: nombreProduitsVendus,
+        vendusMois: produitsVendusMois,
         pourPieces: produitsPourPieces.length,
         sansImei: produits.filter(produit => !produit.imei).length,
         sansPrixVente: produits.filter(produit => !Number(produit.prixvente)).length
@@ -210,7 +221,7 @@ router.get('/stats', requireRole('admin'), async (req, res) => {
         ],
         stockParStatut: [
           { label: 'Disponible', valeur: produitsDisponibles.length },
-          { label: 'Vendu', valeur: produitsVendus.length },
+          { label: 'Vendu', valeur: nombreProduitsVendus },
           { label: 'Pour pieces', valeur: produitsPourPieces.length }
         ]
       }
@@ -277,7 +288,7 @@ function cleMois(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function calculerVentesParMois(produitsVendus, dateReference = new Date()) {
+function calculerVentesParMois(ventes, produitsVendusLegacy, dateReference = new Date()) {
   const mois = [];
 
   for (let index = 5; index >= 0; index -= 1) {
@@ -291,7 +302,21 @@ function calculerVentesParMois(produitsVendus, dateReference = new Date()) {
     });
   }
 
-  produitsVendus.forEach(produit => {
+  ventes.forEach(vente => {
+    const dateVente = new Date(vente.dateVente);
+    if (Number.isNaN(dateVente.getTime())) return;
+
+    const moisTrouve = mois.find(item => item.cle === cleMois(dateVente));
+    if (!moisTrouve) return;
+
+    lignesProduitsVente(vente).forEach(item => {
+      moisTrouve.chiffreAffaires += montant(item.totalLigne);
+      moisTrouve.profit += montant(item.profitLigne);
+      moisTrouve.nombre += montant(item.quantite) || 1;
+    });
+  });
+
+  produitsVendusLegacy.forEach(produit => {
     const dateReferenceVente = produit.dateVenteDashboard || dateReferenceVenteProduit(produit);
     if (!dateReferenceVente) return;
 
@@ -308,6 +333,24 @@ function calculerVentesParMois(produitsVendus, dateReference = new Date()) {
   });
 
   return mois;
+}
+
+function compterProduitsVendusDansVentes(ventes) {
+  return ventes.reduce((total, vente) => total + lignesProduitsVente(vente).reduce((sousTotal, item) => (
+    sousTotal + (montant(item.quantite) || 1)
+  ), 0), 0);
+}
+
+function lignesProduitsVente(vente) {
+  return Array.isArray(vente.items)
+    ? vente.items.filter(item => item.type === 'produit')
+    : [];
+}
+
+function chiffreAffairesVente(vente) {
+  return vente.sousTotalApresRabais !== undefined
+    ? vente.sousTotalApresRabais
+    : montant(vente.sousTotal) - montant(vente.rabais);
 }
 
 function calculerReparationsParMois(reparations, dateReference = new Date()) {

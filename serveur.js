@@ -40,6 +40,11 @@ app.use('/api/clients', clientRoutes);
 //FACTURE
 const facturesRoutes = require('./routes/factures');
 app.use('/api/factures', facturesRoutes);
+app.use('/api/invoices', facturesRoutes);
+
+//Ventes
+const salesRoutes = require('./routes/salesRoutes');
+app.use('/api/sales', salesRoutes);
 
 //Retours clients / SAV
 const savRoutes = require('./routes/savRoutes');

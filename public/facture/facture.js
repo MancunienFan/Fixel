@@ -15,11 +15,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   const checkboxContainer = document.getElementById('checkboxContainer');
   const facturesTableBody = document.querySelector('#facturesTable tbody');
   const btnRefreshFactures = document.getElementById('btnRefreshFactures');
-  const rechercheNumeroFacture = document.getElementById('rechercheNumeroFacture');
-  const rechercheClientFacture = document.getElementById('rechercheClientFacture');
-  const rechercheDateDebut = document.getElementById('rechercheDateDebut');
-  const rechercheDateFin = document.getElementById('rechercheDateFin');
-  const btnResetRechercheFactures = document.getElementById('btnResetRechercheFactures');
+  const champsFiltres = [
+    'rechercheNumeroFacture',
+    'rechercheClientFacture',
+    'filtreTypeFacture',
+    'filtreStatutPaiement',
+    'filtreEmailEnvoye',
+    'filtrePdfDisponible',
+    'filtreStatutFacture',
+    'rechercheDateDebut',
+    'rechercheDateFin'
+  ].map(id => document.getElementById(id)).filter(Boolean);
 
   await Promise.all([
     chargerClients(clientSelect),
@@ -27,30 +33,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   ]);
 
   btnRefreshFactures.addEventListener('click', () => chargerFactures(facturesTableBody));
-
-  [
-    rechercheNumeroFacture,
-    rechercheClientFacture,
-    rechercheDateDebut,
-    rechercheDateFin
-  ].forEach(input => {
+  champsFiltres.forEach(input => {
     input.addEventListener('input', () => afficherFacturesFiltrees(facturesTableBody));
     input.addEventListener('change', () => afficherFacturesFiltrees(facturesTableBody));
   });
 
-  btnResetRechercheFactures.addEventListener('click', () => {
-    rechercheNumeroFacture.value = '';
-    rechercheClientFacture.value = '';
-    rechercheDateDebut.value = '';
-    rechercheDateFin.value = '';
+  document.getElementById('btnResetRechercheFactures').addEventListener('click', () => {
+    champsFiltres.forEach(input => { input.value = ''; });
     afficherFacturesFiltrees(facturesTableBody);
   });
 
   clientSelect.addEventListener('change', async () => {
     const clientId = clientSelect.value;
 
-    produitSelect.innerHTML = '<option value="">-- Sélectionnez un produit --</option>';
-    reparationSelect.innerHTML = '<option value="">-- Sélectionnez une réparation --</option>';
+    produitSelect.innerHTML = '<option value="">-- Selectionnez un produit --</option>';
+    reparationSelect.innerHTML = '<option value="">-- Selectionnez une reparation --</option>';
     produitContainer.style.display = 'none';
     reparationContainer.style.display = 'none';
     detailsContainer.style.display = 'none';
@@ -73,7 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   produitSelect.addEventListener('change', async () => {
     const produitId = produitSelect.value;
 
-    reparationSelect.innerHTML = '<option value="">-- Sélectionnez une réparation --</option>';
+    reparationSelect.innerHTML = '<option value="">-- Selectionnez une reparation --</option>';
     reparationContainer.style.display = 'none';
     detailsContainer.style.display = 'none';
     checkboxContainer.style.display = 'none';
@@ -96,7 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   reparationSelect.addEventListener('change', () => {
     const selectedOptions = Array.from(reparationSelect.selectedOptions).filter(option => option.value);
-    detailsContainer.innerHTML = '<h3>Détails</h3>';
+    detailsContainer.innerHTML = '<h3>Details</h3>';
 
     if (!selectedOptions.length) {
       detailsContainer.style.display = 'none';
@@ -117,7 +114,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const totalLine = document.createElement('p');
     totalLine.className = 'invoice-total-line';
-    totalLine.textContent = `Sous-total sélectionné : ${formatMontant(total)}`;
+    totalLine.textContent = `Sous-total selectionne : ${formatMontant(total)}`;
     detailsContainer.appendChild(totalLine);
 
     detailsContainer.style.display = 'block';
@@ -135,12 +132,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       .filter(Boolean);
 
     if (!clientId || !produitId || reparationIds.length === 0) {
-      alert('Veuillez sélectionner un client, un produit et au moins une réparation.');
+      alert('Veuillez selectionner un client, un produit et au moins une reparation.');
       return;
     }
 
     genererPdfBtn.disabled = true;
-    genererPdfBtn.textContent = 'Création...';
+    genererPdfBtn.textContent = 'Creation...';
 
     try {
       const response = await fetch('/api/factures', {
@@ -156,27 +153,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || result.erreur || 'Erreur lors de la création de la facture');
+      if (!response.ok) throw new Error(result.error || result.erreur || 'Erreur lors de la creation de la facture');
 
       if (downloadChecked.checked) {
         await telechargerFacture(result._id, inclureTaxesCheckbox.checked);
       }
 
       await chargerFactures(facturesTableBody);
-      alert(result.message || 'Facture créée avec succès.');
+      alert(result.message || 'Facture creee avec succes.');
     } catch (err) {
       console.error('Erreur facture :', err);
-      alert(err.message || 'Une erreur est survenue lors de la création de la facture.');
+      alert(err.message || 'Une erreur est survenue lors de la creation de la facture.');
     } finally {
       genererPdfBtn.disabled = false;
-      genererPdfBtn.textContent = 'Créer la facture';
+      genererPdfBtn.textContent = 'Creer la facture';
     }
   });
 });
 
 async function chargerClients(clientSelect) {
   clientsCache = await fetch('/api/clients').then(res => res.json());
-
   clientsCache.forEach(c => {
     const option = document.createElement('option');
     option.value = c._id;
@@ -191,7 +187,7 @@ async function chargerFactures(tbody) {
     afficherFacturesFiltrees(tbody);
   } catch (err) {
     console.error('Erreur chargement factures :', err);
-    tbody.innerHTML = '<tr><td colspan="8">Erreur lors du chargement des factures.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11">Erreur lors du chargement des factures.</td></tr>';
   }
 }
 
@@ -200,22 +196,26 @@ function afficherFacturesFiltrees(tbody) {
 }
 
 function filtrerFactures() {
-  const numero = normaliserTexte(document.getElementById('rechercheNumeroFacture').value).replace(/^#/, '');
-  const clientRecherche = normaliserTexte(document.getElementById('rechercheClientFacture').value);
-  const dateDebutValue = document.getElementById('rechercheDateDebut').value;
-  const dateFinValue = document.getElementById('rechercheDateFin').value;
-  const dateDebut = dateDebutValue ? debutJour(dateDebutValue) : null;
-  const dateFin = dateFinValue ? finJour(dateFinValue) : null;
+  const numero = normaliserTexte(valeurChamp('rechercheNumeroFacture')).replace(/^#/, '');
+  const clientRecherche = normaliserTexte(valeurChamp('rechercheClientFacture'));
+  const typeFacture = valeurChamp('filtreTypeFacture');
+  const statutPaiement = valeurChamp('filtreStatutPaiement');
+  const emailEnvoye = valeurChamp('filtreEmailEnvoye');
+  const pdfDisponible = valeurChamp('filtrePdfDisponible');
+  const statutFacture = valeurChamp('filtreStatutFacture');
+  const dateDebut = valeurChamp('rechercheDateDebut') ? debutJour(valeurChamp('rechercheDateDebut')) : null;
+  const dateFin = valeurChamp('rechercheDateFin') ? finJour(valeurChamp('rechercheDateFin')) : null;
 
   return facturesCache.filter(facture => {
     if (numero && !String(facture.numeroFacture || '').includes(numero)) return false;
+    if (typeFacture && facture.type !== typeFacture) return false;
+    if (statutPaiement && (facture.statutPaiement || '') !== statutPaiement) return false;
+    if (emailEnvoye && String(Boolean(facture.emailEnvoye || facture.envoyeeParEmail)) !== emailEnvoye) return false;
+    if (pdfDisponible && String(pdfFactureDisponible(facture)) !== pdfDisponible) return false;
+    if (statutFacture && statutFactureEffectif(facture) !== statutFacture) return false;
+    if (clientRecherche && !normaliserTexte(nomClientFacture(facture)).includes(clientRecherche)) return false;
 
-    const client = facture.client
-      ? `${facture.client.nom || ''} ${facture.client.prenom || ''}`
-      : '';
-    if (clientRecherche && !normaliserTexte(client).includes(clientRecherche)) return false;
-
-    const dateFacture = lireDate(facture.date);
+    const dateFacture = lireDate(facture.date || facture.dateEmission);
     if ((dateDebut || dateFin) && !dateFacture) return false;
     if (dateDebut && dateFacture < dateDebut) return false;
     if (dateFin && dateFacture > dateFin) return false;
@@ -231,25 +231,31 @@ function afficherFactures(tbody, factures) {
   if (facturesCount) facturesCount.textContent = factures.length;
 
   if (!factures.length) {
-    tbody.innerHTML = '<tr><td colspan="8">Aucune facture ne correspond à la recherche.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11">Aucune facture generee pour le moment.</td></tr>';
     return;
   }
 
   factures.forEach(facture => {
     const tr = document.createElement('tr');
-    const client = facture.client ? `${facture.client.nom || ''} ${facture.client.prenom || ''}`.trim() : '';
-    const produit = facture.produit ? `${facture.produit.nom || ''} ${facture.produit.model || ''}`.trim() : '';
+    const statutFacture = statutFactureEffectif(facture);
+    const pdfDisponible = pdfFactureDisponible(facture);
+    const emailEnvoye = Boolean(facture.emailEnvoye || facture.envoyeeParEmail);
 
     tr.innerHTML = `
       <td>${formatNumeroFacture(facture.numeroFacture)}</td>
-      <td>${client || '-'}</td>
-      <td>${produit || '-'}</td>
-      <td>${formatDate(facture.date)}</td>
+      <td>${formatDate(facture.date || facture.dateEmission)}</td>
+      <td>${renderBadge(libelleTypeFacture(facture.type), facture.type === 'vente' ? 'info' : 'neutral')}</td>
+      <td>${echapperHtml(nomClientFacture(facture))}</td>
+      <td>${renderSource(facture)}</td>
       <td>${formatMontant(facture.totalTTC || facture.totalHT || 0)}</td>
-      <td>${renderStatutSelect(facture)}</td>
-      <td>${facture.envoyeeParEmail ? 'Envoyée' : 'Non envoyée'}</td>
-      <td>
+      <td>${echapperHtml(libelleStatutPaiement(facture))}</td>
+      <td>${renderBadge(emailEnvoye ? 'Oui' : 'Non', emailEnvoye ? 'success' : 'neutral')}</td>
+      <td>${renderBadge(pdfDisponible ? 'Oui' : 'Non', pdfDisponible ? 'success' : 'neutral')}</td>
+      <td>${renderBadge(statutFacture === 'annulee' ? 'Annulee' : 'Active', statutFacture === 'annulee' ? 'danger' : 'success')}</td>
+      <td class="invoice-actions">
         <button type="button" class="table-action" data-download="${facture._id}" data-taxes="${facture.inclureTaxes ? 'true' : 'false'}">PDF</button>
+        <button type="button" class="table-action" data-email="${facture._id}">Email</button>
+        ${renderSourceAction(facture)}
       </td>
     `;
 
@@ -258,34 +264,19 @@ function afficherFactures(tbody, factures) {
 
   tbody.querySelectorAll('[data-download]').forEach(button => {
     button.addEventListener('click', () => {
-      telechargerFacture(button.dataset.download, button.dataset.taxes === 'true');
+      telechargerFacture(button.dataset.download, button.dataset.taxes === 'true')
+        .catch(err => alert(err.message || 'Impossible de telecharger la facture.'));
     });
   });
 
-  tbody.querySelectorAll('[data-statut]').forEach(select => {
-    select.addEventListener('change', async () => {
-      await changerStatutFacture(select.dataset.statut, select.value);
-      await chargerFactures(tbody);
-    });
+  tbody.querySelectorAll('[data-email]').forEach(button => {
+    button.addEventListener('click', () => envoyerFactureEmail(button.dataset.email));
   });
-}
-
-async function changerStatutFacture(factureId, statut) {
-  const response = await fetch(`/api/factures/${factureId}/statut`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ statut })
-  });
-
-  if (!response.ok) {
-    const data = await response.json();
-    alert(data.error || 'Impossible de changer le statut.');
-  }
 }
 
 async function telechargerFacture(factureId, inclureTaxes) {
   const res = await fetch(`/api/factures/${factureId}/pdf?inclureTaxes=${inclureTaxes}`);
-  if (!res.ok) throw new Error('Erreur lors du téléchargement');
+  if (!res.ok) throw new Error('Erreur lors du telechargement');
 
   const blob = await res.blob();
   const contentDisposition = res.headers.get('Content-Disposition');
@@ -306,22 +297,86 @@ async function telechargerFacture(factureId, inclureTaxes) {
   window.URL.revokeObjectURL(url);
 }
 
-function renderStatutSelect(facture) {
-  const statutActuel = facture.statut || 'emise';
-  const options = [
-    ['emise', 'Émise'],
-    ['envoyee', 'Envoyée'],
-    ['payee', 'Payée'],
-    ['annulee', 'Annulée']
-  ];
+async function envoyerFactureEmail(factureId) {
+  const facture = facturesCache.find(item => item._id === factureId);
+  const emailDefaut = facture && (facture.emailDestinataire || facture.client && facture.client.email) || '';
+  const email = prompt('Courriel destinataire', emailDefaut);
+  if (!email) return;
 
-  return `
-    <select class="status-select" data-statut="${facture._id}">
-      ${options.map(([value, label]) => `
-        <option value="${value}" ${statutActuel === value ? 'selected' : ''}>${label}</option>
-      `).join('')}
-    </select>
-  `;
+  const response = await fetch(`/api/factures/${factureId}/send-email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ emailFacture: email })
+  });
+  const data = await response.json().catch(() => ({}));
+  alert(data.message || data.error || (response.ok ? 'Facture envoyee.' : 'Erreur envoi facture.'));
+  await chargerFactures(document.querySelector('#facturesTable tbody'));
+}
+
+function renderSource(facture) {
+  if (facture.type === 'vente') {
+    return `Vente ${formatNumeroFacture(facture.sale && facture.sale.numeroVente || '')}`;
+  }
+  if (facture.type === 'sav') return `SAV ${formatNumeroFacture(facture.sourceNumero || '')}`;
+  if (facture.reparations && facture.reparations.length) {
+    const premiere = facture.reparations[0];
+    const libelle = premiere && typeof premiere === 'object'
+      ? premiere.description || premiere.statut || premiere._id
+      : premiere;
+    return `Reparation ${echapperHtml(libelle || '')}`;
+  }
+  const produit = facture.produit ? `${facture.produit.nom || ''} ${facture.produit.model || ''}`.trim() : '';
+  return echapperHtml(produit || '-');
+}
+
+function renderSourceAction(facture) {
+  if (facture.type === 'vente' && facture.sale && facture.sale._id) {
+    return `<a class="table-link-button" href="/ventes/vente.html?id=${facture.sale._id}">Source</a>`;
+  }
+  if (facture.type === 'reparation') {
+    return '<a class="table-link-button" href="/reparation/reparations.html">Source</a>';
+  }
+  return '';
+}
+
+function nomClientFacture(facture) {
+  if (facture.client) {
+    return `${facture.client.nom || ''} ${facture.client.prenom || ''}`.trim() || facture.client.email || 'Client';
+  }
+  return facture.clientNomAffiche || (facture.type === 'vente' ? 'Vente comptoir' : 'Client non renseigne');
+}
+
+function libelleTypeFacture(type) {
+  if (type === 'vente') return 'Vente';
+  if (type === 'sav') return 'SAV';
+  if (type === 'autre') return 'Autre';
+  return 'Reparation';
+}
+
+function libelleStatutPaiement(facture) {
+  const statut = facture.statutPaiement || facture.statut || '';
+  if (statut === 'paye' || statut === 'payee') return 'Paye';
+  if (statut === 'partiellement paye') return 'Partiellement paye';
+  if (statut === 'non paye') return 'Non paye';
+  if (statut === 'envoyee') return 'Envoyee';
+  if (statut === 'annulee') return 'Annulee';
+  return statut || '-';
+}
+
+function pdfFactureDisponible(facture) {
+  return Boolean(facture.pdfPath || facture.fichierPDF || facture.type === 'reparation' || facture.type === 'vente');
+}
+
+function statutFactureEffectif(facture) {
+  if (facture.statutFacture === 'annulee' || facture.statut === 'annulee') return 'annulee';
+  if (facture.sale && (facture.sale.statut === 'annulee' || facture.sale.statutVente === 'annulee' || facture.sale.annuleeLe || facture.sale.deletedAt)) {
+    return 'annulee';
+  }
+  return 'active';
+}
+
+function renderBadge(label, variante) {
+  return `<span class="invoice-badge invoice-badge-${variante || 'neutral'}">${echapperHtml(label)}</span>`;
 }
 
 function formatNumeroFacture(numero) {
@@ -354,6 +409,11 @@ function finJour(dateString) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+function valeurChamp(id) {
+  const element = document.getElementById(id);
+  return element ? element.value : '';
+}
+
 function normaliserTexte(valeur) {
   return (valeur || '')
     .toString()
@@ -361,4 +421,13 @@ function normaliserTexte(valeur) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .trim();
+}
+
+function echapperHtml(valeur) {
+  return String(valeur ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }

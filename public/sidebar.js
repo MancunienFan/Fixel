@@ -26,6 +26,10 @@ window.addEventListener("DOMContentLoaded", () => {
       <span class="sidebar-link-icon">SAV</span>
       <span class="sidebar-link-text">Retours / SAV</span>
     </a>
+    <a href="/ventes/ventes.html" class="sidebar-link" data-icon="$">
+      <span class="sidebar-link-icon">$</span>
+      <span class="sidebar-link-text">Ventes</span>
+    </a>
   `;
 
   sidebar.innerHTML = `

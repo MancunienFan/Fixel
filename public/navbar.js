@@ -14,6 +14,7 @@ window.addEventListener("DOMContentLoaded", () => {
       <a href="/atelier/atelier.html">Atelier</a>
       <a href="/reparation/reparations.html">Reparations</a>
       <a href="/sav/sav.html">Retours / SAV</a>
+      <a href="/ventes/ventes.html">Ventes</a>
   `;
 
   navbar.innerHTML = `

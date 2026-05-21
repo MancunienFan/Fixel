@@ -117,6 +117,11 @@ const produitSchema = new mongoose.Schema({
     ref: 'Client',
     index: true
   },
+  venteId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Sale',
+    index: true
+  },
   type: {
     type: String,
     enum: ['client', 'stock'],
@@ -166,11 +171,12 @@ produitSchema.pre('findOneAndUpdate', async function (next) {
       const nouvelleDisponibilite = normaliserDisponibilite(updateDirect.disponibilite);
 
       if (nouvelleDisponibilite === 'vendu') {
-        updateDirect.datevente = ancienneDisponibilite === 'vendu' && produitExistant && produitExistant.datevente
+        updateDirect.datevente = updateDirect.datevente || (ancienneDisponibilite === 'vendu' && produitExistant && produitExistant.datevente
           ? produitExistant.datevente
-          : datemodification;
+          : datemodification);
       } else {
         updateDirect.datevente = null;
+        updateDirect.venteId = null;
       }
     }
 

@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const Produit = require('../models/produitModel');
 const Reparation = require('../models/reparationModel');
 const Facture = require('../models/Facture');
+const Sale = require('../models/Sale');
 const Client = require('../models/clientModel');
 const { SavReturn } = require('../models/savReturnModel');
 const { requirePermission, requireRole } = require('../middleware/permissions');
@@ -95,15 +96,16 @@ router.delete('/produit/:id', requireRole('admin'), async (req, res) => {
     const produit = await Produit.findById(req.params.id);
     if (!produit) return res.status(404).json({ erreur: 'Produit non trouve' });
 
-    const [reparationLiee, factureLiee, savLie] = await Promise.all([
+    const [reparationLiee, factureLiee, venteLiee, savLie] = await Promise.all([
       Reparation.exists({ produit: req.params.id }),
       Facture.exists({ produit: req.params.id }),
+      Sale.exists({ 'items.productId': req.params.id }),
       SavReturn.exists({ productId: req.params.id })
     ]);
 
-    if (reparationLiee || factureLiee || savLie) {
+    if (reparationLiee || factureLiee || venteLiee || savLie) {
       return res.status(409).json({
-        erreur: 'Impossible de supprimer ce produit: il est lie a des reparations, factures ou retours SAV.'
+        erreur: 'Impossible de supprimer ce produit: il est lie a des reparations, factures, ventes ou retours SAV.'
       });
     }
 

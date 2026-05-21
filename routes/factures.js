@@ -2,26 +2,58 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const fs = require('fs/promises');
+const path = require('path');
 
 const Facture = require('../models/Facture');
+const Sale = require('../models/Sale');
+const Counter = require('../models/Counter');
 const { genererPDF } = require('../utils/pdfGenerator');
 const envoyerFactureParEmail = require('../utils/emailSender');
+const { sendEmail } = require('../utils/emailSender');
+const { genererFactureVentePDF } = require('../utils/saleInvoiceGenerator');
 
 const Client = require('../models/clientModel');
 const Produit = require('../models/produitModel');
 const Reparation = require('../models/reparationModel');
 const { requirePermission, requireRole } = require('../middleware/permissions');
 
+const DOSSIER_FACTURES_VENTES = path.join(__dirname, '..', 'public', 'generated', 'sales-invoices');
+
 router.get('/', requirePermission('factures', 'read'), async (req, res) => {
   try {
-    const factures = await Facture.find()
+    await synchroniserFacturesVentesManquantes();
+    const filtre = construireFiltreFactures(req.query);
+    const factures = await Facture.find(filtre)
       .populate('client', 'nom prenom email telephone')
       .populate('produit', 'nom model imei')
+      .populate('reparations', 'description prix statut createdAt')
+      .populate('sale', 'numeroVente dateVente total statutPaiement modePaiement statut statutVente annuleeLe deletedAt')
       .sort({ date: -1, numeroFacture: -1 });
 
     res.json(factures);
   } catch (err) {
     console.error('Erreur liste factures :', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+router.get('/:id', requirePermission('factures', 'read'), async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'ID facture invalide' });
+    }
+
+    const facture = await Facture.findById(req.params.id)
+      .populate('client', 'nom prenom email telephone')
+      .populate('produit', 'nom model imei')
+      .populate('reparations')
+      .populate('sale');
+
+    if (!facture) return res.status(404).json({ error: 'Facture introuvable' });
+    res.json(facture);
+  } catch (err) {
+    console.error('Erreur detail facture :', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
@@ -70,6 +102,8 @@ router.post('/', requireRole('admin'), async (req, res) => {
     }
 
     const facture = new Facture({
+      type: 'reparation',
+      sourceModel: 'Produit',
       client: client._id,
       produit: produit._id,
       reparations: reparations.map(r => r._id),
@@ -170,6 +204,11 @@ router.get('/:id/pdf', requirePermission('factures', 'read'), async (req, res) =
 
     if (!facture) return res.status(404).send('Facture introuvable');
 
+    if (facture.type === 'vente') {
+      const cheminPdf = await obtenirPdfFactureVente(facture);
+      return res.download(cheminPdf, path.basename(cheminPdf));
+    }
+
     const appliquerTaxes = req.query.inclureTaxes === 'true'
       ? true
       : Boolean(facture.inclureTaxes);
@@ -193,5 +232,287 @@ router.get('/:id/pdf', requirePermission('factures', 'read'), async (req, res) =
     res.status(500).send('Erreur serveur');
   }
 });
+
+router.post('/:id/send-email', requirePermission('factures', 'update'), async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'ID facture invalide' });
+    }
+
+    const facture = await Facture.findById(req.params.id)
+      .populate('client', 'nom prenom email telephone')
+      .populate('sale');
+
+    if (!facture) return res.status(404).json({ error: 'Facture introuvable' });
+
+    if (facture.type === 'vente') {
+      const resultat = await envoyerFactureVenteDepuisFacture(facture, req.body.emailFacture || req.body.email);
+      return res.status(resultat.ok ? 200 : 502).json({
+        message: resultat.ok ? 'Facture envoyee.' : 'Facture generee, mais envoi echoue.',
+        facture: await Facture.findById(facture._id).populate('client', 'nom prenom email telephone').populate('sale')
+      });
+    }
+
+    const email = String(req.body.emailFacture || req.body.email || facture.emailDestinataire || facture.client && facture.client.email || '').trim();
+    if (!emailValide(email)) return res.status(400).json({ error: 'Courriel valide requis.' });
+
+    const appliquerTaxes = req.body.inclureTaxes === true || req.body.inclureTaxes === 'true'
+      ? true
+      : Boolean(facture.inclureTaxes);
+    const factureComplete = await Facture.findById(facture._id)
+      .populate('client')
+      .populate('produit')
+      .populate('reparations');
+    const { nomFichier, pdfBuffer } = await genererPDF(
+      factureComplete.client,
+      factureComplete.produit,
+      factureComplete.reparations,
+      factureComplete.numeroFacture,
+      appliquerTaxes
+    );
+
+    await envoyerFactureParEmail(email, factureComplete.client && factureComplete.client.nom, pdfBuffer, nomFichier);
+    facture.emailDestinataire = email;
+    facture.envoyeeParEmail = true;
+    facture.emailEnvoye = true;
+    facture.dateEnvoiEmail = new Date();
+    facture.emailEnvoyeLe = facture.dateEnvoiEmail;
+    facture.statut = 'envoyee';
+    await facture.save();
+
+    res.json({ message: 'Facture envoyee.', facture });
+  } catch (err) {
+    console.error('Erreur envoi facture :', err);
+    res.status(500).json({ error: err.message || 'Erreur serveur' });
+  }
+});
+
+function construireFiltreFactures(query) {
+  const filtre = {};
+
+  if (query.type && query.type !== 'toutes') filtre.type = query.type;
+  if (query.statutPaiement) filtre.statutPaiement = query.statutPaiement;
+  if (query.emailEnvoye !== undefined && query.emailEnvoye !== '') {
+    filtre.emailEnvoye = bool(query.emailEnvoye);
+  }
+  if (query.pdfDisponible !== undefined && query.pdfDisponible !== '') {
+    filtre.pdfPath = bool(query.pdfDisponible) ? { $nin: [null, ''] } : { $in: [null, ''] };
+  }
+  if (query.statutFacture && query.statutFacture !== 'toutes') {
+    filtre.statutFacture = query.statutFacture;
+  }
+  if (query.client && mongoose.Types.ObjectId.isValid(query.client)) filtre.client = query.client;
+
+  const debut = query.dateDu ? dateValide(`${query.dateDu}T00:00:00`) : null;
+  const fin = query.dateAu ? dateValide(`${query.dateAu}T23:59:59.999`) : null;
+  if (debut || fin) {
+    filtre.date = {};
+    if (debut) filtre.date.$gte = debut;
+    if (fin) filtre.date.$lte = fin;
+  }
+
+  return filtre;
+}
+
+async function synchroniserFacturesVentesManquantes() {
+  const ventes = await Sale.find({ factureGeneree: true })
+    .populate('client', 'nom prenom email telephone')
+    .limit(200);
+
+  for (const vente of ventes) {
+    const factureExistante = await Facture.findOne({ sale: vente._id });
+    if (factureExistante) {
+      if (!vente.factureId || String(vente.factureId) !== String(factureExistante._id)) {
+        vente.factureId = factureExistante._id;
+        await vente.save();
+      }
+      continue;
+    }
+
+    await assurerNumeroFactureVente(vente);
+    const facture = await Facture.create(donneesFactureDepuisVente(vente));
+    vente.factureId = facture._id;
+    await vente.save();
+  }
+}
+
+function donneesFactureDepuisVente(vente) {
+  const venteAnnulee = vente.statut === 'annulee' || vente.statutVente === 'annulee' || vente.deletedAt || vente.annuleeLe;
+  const statutFacture = venteAnnulee ? 'annulee' : 'active';
+  return {
+    numeroFacture: vente.factureNumero,
+    type: 'vente',
+    sourceId: vente._id,
+    sourceModel: 'Sale',
+    sale: vente._id,
+    client: vente.client && vente.client._id ? vente.client._id : vente.client || null,
+    clientNomAffiche: vente.client ? '' : 'Vente comptoir',
+    date: vente.factureDate || vente.dateVente || vente.createdAt || new Date(),
+    dateEmission: vente.factureDate || vente.dateVente || vente.createdAt || new Date(),
+    datePaiement: vente.datePaiement,
+    statut: statutFacture === 'annulee' ? 'annulee' : vente.factureEnvoyee ? 'envoyee' : vente.statutPaiement === 'paye' ? 'payee' : 'emise',
+    statutFacture,
+    inclureTaxes: Boolean(vente.taxesActivees),
+    taxesActivees: Boolean(vente.taxesActivees),
+    rabais: montant(vente.rabais),
+    tps: montant(vente.montantTPS),
+    tvq: montant(vente.montantTVQ),
+    montantTPS: montant(vente.montantTPS),
+    montantTVQ: montant(vente.montantTVQ),
+    totalTaxes: montant(vente.totalTaxes),
+    totalHT: montant(vente.sousTotalApresRabais || vente.sousTotal),
+    totalTTC: montant(vente.total),
+    modePaiement: vente.modePaiement || '',
+    statutPaiement: vente.statutPaiement || '',
+    envoyeeParEmail: Boolean(vente.factureEnvoyee),
+    emailEnvoye: Boolean(vente.factureEnvoyee),
+    dateEnvoiEmail: vente.factureEnvoyeeLe,
+    emailEnvoyeLe: vente.factureEnvoyeeLe,
+    emailDestinataire: vente.emailFacture || '',
+    fichierPDF: vente.facturePdfPath || '',
+    pdfPath: vente.facturePdfPath || '',
+    createdBy: vente.createdBy,
+    updatedBy: vente.updatedBy
+  };
+}
+
+async function assurerNumeroFactureVente(vente) {
+  let numero = vente.factureNumero;
+  while (!numero || await numeroFactureDejaUtilise(numero, vente._id)) {
+    const counter = await Counter.findByIdAndUpdate(
+      { _id: 'facture' },
+      { $inc: { seq: 1 } },
+      { upsert: true, new: true }
+    );
+    numero = counter.seq;
+  }
+
+  if (vente.factureNumero !== numero) {
+    vente.factureNumero = numero;
+    vente.factureDate = vente.factureDate || new Date();
+    await vente.save();
+  }
+  await Counter.updateOne({ _id: 'facture' }, { $max: { seq: numero } }, { upsert: true });
+}
+
+async function numeroFactureDejaUtilise(numero, venteId) {
+  const facture = await Facture.findOne({ numeroFacture: numero }).select('sale').lean();
+  return Boolean(facture && String(facture.sale || '') !== String(venteId));
+}
+
+async function obtenirPdfFactureVente(facture) {
+  if (facture.pdfPath && await fichierExiste(facture.pdfPath)) return facture.pdfPath;
+
+  const venteId = facture.sale || facture.sourceId;
+  if (!venteId) throw new Error('Vente liee introuvable.');
+
+  const vente = await Sale.findById(venteId)
+    .populate('client', 'nom prenom email telephone')
+    .populate('items.productId', 'nom model imei prixachat prixvente');
+  if (!vente) throw new Error('Vente liee introuvable.');
+
+  const { pdfBuffer, nomFichier } = await genererFactureVentePDF(vente);
+  await fs.mkdir(DOSSIER_FACTURES_VENTES, { recursive: true });
+  const cheminPdf = path.join(DOSSIER_FACTURES_VENTES, nomFichier);
+  await fs.writeFile(cheminPdf, pdfBuffer);
+
+  vente.factureGeneree = true;
+  vente.facturePdfPath = cheminPdf;
+  vente.factureDate = vente.factureDate || facture.date || new Date();
+  if (!vente.factureId) vente.factureId = facture._id;
+  await vente.save();
+
+  facture.pdfPath = cheminPdf;
+  facture.fichierPDF = cheminPdf;
+  facture.date = facture.date || vente.factureDate;
+  await facture.save();
+
+  return cheminPdf;
+}
+
+async function envoyerFactureVenteDepuisFacture(facture, email) {
+  const vente = facture.sale && facture.sale._id ? facture.sale : await Sale.findById(facture.sale || facture.sourceId).populate('client', 'nom prenom email telephone');
+  const emailFinal = String(email || facture.emailDestinataire || vente && vente.emailFacture || vente && vente.client && vente.client.email || '').trim();
+  if (!emailValide(emailFinal)) {
+    const err = new Error('Courriel valide requis.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const cheminPdf = await obtenirPdfFactureVente(facture);
+  try {
+    await sendEmail({
+      to: emailFinal,
+      subject: `Votre facture Fixel - ${formatNumero(facture.numeroFacture)}`,
+      text: 'Bonjour,\n\nVous trouverez en piece jointe votre facture pour votre achat chez Fixel.\n\nMerci pour votre confiance.\n\nFixel',
+      html: '<p>Bonjour,</p><p>Vous trouverez en piece jointe votre facture pour votre achat chez Fixel.</p><p>Merci pour votre confiance.</p><p>Fixel</p>',
+      attachments: [{
+        filename: path.basename(cheminPdf),
+        path: cheminPdf,
+        contentType: 'application/pdf'
+      }]
+    });
+
+    const dateEnvoi = new Date();
+    facture.emailDestinataire = emailFinal;
+    facture.envoyeeParEmail = true;
+    facture.emailEnvoye = true;
+    facture.dateEnvoiEmail = dateEnvoi;
+    facture.emailEnvoyeLe = dateEnvoi;
+    facture.statut = 'envoyee';
+    await facture.save();
+
+    if (vente) {
+      vente.emailFacture = emailFinal;
+      vente.factureEnvoyee = true;
+      vente.factureEnvoyeeLe = dateEnvoi;
+      vente.erreurEnvoiFacture = '';
+      vente.factureId = facture._id;
+      await vente.save();
+    }
+
+    return { ok: true };
+  } catch (err) {
+    if (vente) {
+      vente.emailFacture = emailFinal;
+      vente.factureEnvoyee = false;
+      vente.erreurEnvoiFacture = err.message || 'Erreur envoi facture';
+      await vente.save();
+    }
+    return { ok: false, erreur: err.message || 'Erreur envoi facture' };
+  }
+}
+
+async function fichierExiste(chemin) {
+  try {
+    await fs.access(chemin);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function bool(valeur) {
+  return valeur === true || valeur === 'true' || valeur === '1' || valeur === 1;
+}
+
+function montant(valeur) {
+  if (valeur === '' || valeur === null || valeur === undefined) return 0;
+  const nombre = Number.parseFloat(valeur);
+  return Number.isFinite(nombre) ? Math.round((nombre + Number.EPSILON) * 100) / 100 : 0;
+}
+
+function dateValide(valeur) {
+  const date = new Date(valeur);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function emailValide(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+}
+
+function formatNumero(numero) {
+  return numero ? `#${String(numero).padStart(4, '0')}` : '-';
+}
 
 module.exports = router;

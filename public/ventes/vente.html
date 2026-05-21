@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Vente - FixEl</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/auth.js"></script>
+</head>
+
+<body>
+  <nav id="sidebar"></nav>
+
+  <main class="main-content container sales-page">
+    <div class="section-header">
+      <div>
+        <h1 id="titreVente">Nouvelle vente</h1>
+        <p class="section-subtitle">Vente rapide, paiement, taxes et facture optionnelle.</p>
+      </div>
+      <div class="page-actions">
+        <a class="table-link-button" href="/ventes/ventes.html">Retour aux ventes</a>
+      </div>
+    </div>
+
+    <form id="formVente" class="sales-form">
+      <section class="sales-form-grid" aria-label="Informations de vente">
+        <div class="sales-card">
+          <h2>Client</h2>
+          <label>Client optionnel
+            <select id="clientId" name="clientId">
+              <option value="">Aucun client / vente rapide</option>
+              <option value="__new__">Creer nouveau client</option>
+            </select>
+          </label>
+          <label>Courriel d'envoi
+            <input type="email" id="emailFacture" name="emailFacture" placeholder="client@example.com">
+          </label>
+        </div>
+
+        <div class="sales-card">
+          <h2>Paiement</h2>
+          <label>Date de vente
+            <input type="date" id="dateVente" name="dateVente" required>
+          </label>
+          <label>Mode de paiement
+            <select id="modePaiement" name="modePaiement">
+              <option value="comptant">Comptant</option>
+              <option value="interac">Interac</option>
+              <option value="virement">Virement</option>
+              <option value="carte">Carte</option>
+              <option value="autre">Autre</option>
+            </select>
+          </label>
+          <label>Montant paye
+            <input type="number" id="montantPaye" name="montantPaye" min="0" step="0.01" value="0">
+          </label>
+          <p class="sales-status-line">Statut paiement : <strong id="statutPaiementPreview">Non paye</strong></p>
+        </div>
+
+        <div class="sales-card">
+          <h2>Facture</h2>
+          <label class="sales-checkbox-row"><input type="checkbox" id="taxesActivees" name="taxesActivees"> <span>Inclure les taxes</span></label>
+          <label class="sales-checkbox-row"><input type="checkbox" id="factureGeneree" name="factureGeneree"> <span>Generer une facture PDF</span></label>
+          <label class="sales-checkbox-row"><input type="checkbox" id="envoyerFactureEmail" name="envoyerFactureEmail"> <span>Envoyer la facture par courriel</span></label>
+          <p id="etatFacture" class="sales-status-line">Facture non generee.</p>
+        </div>
+
+        <div class="sales-card">
+          <h2>Garantie</h2>
+          <label class="sales-checkbox-row"><input type="checkbox" id="garantieActive" name="garantieActive"> <span>Garantie active</span></label>
+          <label>Duree
+            <input type="number" id="garantieJours" name="garantieJours" min="0" step="1" value="30">
+          </label>
+          <label>Note garantie
+            <input type="text" id="noteGarantie" name="noteGarantie">
+          </label>
+        </div>
+      </section>
+
+      <section class="sales-items-card">
+        <div class="sales-card-header">
+          <h2>Articles vendus</h2>
+          <div class="sales-item-actions">
+            <button type="button" id="btnAjouterTelephone">Ajouter telephone</button>
+            <button type="button" id="btnAjouterAccessoire">Ajouter accessoire</button>
+            <button type="button" id="btnAjouterManuel">Ajouter article manuel</button>
+          </div>
+        </div>
+
+        <div class="table-container sales-items-table">
+          <table id="itemsTable">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Description / produit</th>
+                <th>Qte</th>
+                <th>Prix unitaire</th>
+                <th>Cout unitaire</th>
+                <th>Total</th>
+                <th>Profit</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="sales-summary-grid">
+        <div class="sales-card sales-summary-card">
+          <h2>Resume</h2>
+          <label>Rabais
+            <input type="number" id="rabais" name="rabais" min="0" step="0.01" value="0">
+          </label>
+          <dl class="summary-list">
+            <div><dt>Sous-total</dt><dd id="resumeSousTotal">0.00 $</dd></div>
+            <div><dt>TPS</dt><dd id="resumeTPS">0.00 $</dd></div>
+            <div><dt>TVQ</dt><dd id="resumeTVQ">0.00 $</dd></div>
+            <div><dt>Total</dt><dd id="resumeTotal">0.00 $</dd></div>
+            <div><dt>Cout total</dt><dd id="resumeCout">0.00 $</dd></div>
+            <div><dt>Profit estime</dt><dd id="resumeProfit">0.00 $</dd></div>
+            <div><dt>Solde</dt><dd id="resumeSolde">0.00 $</dd></div>
+          </dl>
+        </div>
+
+        <div class="sales-card sales-notes-card">
+          <h2>Notes</h2>
+          <textarea id="notes" name="notes" rows="7"></textarea>
+          <p id="messageVente" class="sales-status-line"></p>
+          <div class="sales-form-actions">
+            <button type="submit" id="btnEnregistrerVente">Enregistrer la vente</button>
+            <a class="table-link-button" href="/ventes/ventes.html">Retour aux ventes</a>
+            <button type="button" id="btnTelechargerFacture" style="display:none;">Telecharger PDF</button>
+            <button type="button" id="btnEnvoyerFacture" style="display:none;">Envoyer / Renvoyer</button>
+          </div>
+        </div>
+      </section>
+    </form>
+  </main>
+
+  <script src="/ventes/vente.js"></script>
+  <script src="/sidebar.js"></script>
+</body>
+
+</html>

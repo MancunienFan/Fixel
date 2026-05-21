@@ -76,6 +76,49 @@
         <input type="search" id="rechercheClientFacture" placeholder="Nom ou prénom">
       </label>
 
+      <label>Type
+        <select id="filtreTypeFacture">
+          <option value="">Toutes</option>
+          <option value="vente">Vente</option>
+          <option value="reparation">RÃ©paration</option>
+          <option value="sav">SAV</option>
+          <option value="autre">Autre</option>
+        </select>
+      </label>
+
+      <label>Paiement
+        <select id="filtreStatutPaiement">
+          <option value="">Tous</option>
+          <option value="paye">PayÃ©</option>
+          <option value="partiellement paye">Partiellement payÃ©</option>
+          <option value="non paye">Non payÃ©</option>
+        </select>
+      </label>
+
+      <label>Email envoyÃ©
+        <select id="filtreEmailEnvoye">
+          <option value="">Tous</option>
+          <option value="true">Oui</option>
+          <option value="false">Non</option>
+        </select>
+      </label>
+
+      <label>PDF
+        <select id="filtrePdfDisponible">
+          <option value="">Tous</option>
+          <option value="true">Oui</option>
+          <option value="false">Non</option>
+        </select>
+      </label>
+
+      <label>Statut facture
+        <select id="filtreStatutFacture">
+          <option value="">Toutes</option>
+          <option value="active">Active</option>
+          <option value="annulee">AnnulÃ©e</option>
+        </select>
+      </label>
+
       <label>Du
         <input type="date" id="rechercheDateDebut">
       </label>
@@ -97,19 +140,22 @@
       <table id="facturesTable">
         <thead>
           <tr>
-            <th>No</th>
-            <th>Client</th>
-            <th>Produit</th>
+            <th>No facture</th>
             <th>Date</th>
+            <th>Type</th>
+            <th>Client</th>
+            <th>Source</th>
             <th>Total</th>
-            <th>Statut</th>
+            <th>Paiement</th>
             <th>Email</th>
+            <th>PDF</th>
+            <th>Statut</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td colspan="8">Chargement des factures...</td>
+            <td colspan="11">Chargement des factures...</td>
           </tr>
         </tbody>
       </table>

@@ -10,22 +10,49 @@ const factureSchema = new mongoose.Schema({
     type: Number,
     unique: true
   },
+  type: {
+    type: String,
+    enum: ['reparation', 'vente', 'sav', 'autre'],
+    default: 'reparation',
+    index: true
+  },
+  sourceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    index: true
+  },
+  sourceModel: {
+    type: String,
+    enum: ['Sale', 'Reparation', 'SAV', 'Other', 'Produit'],
+    default: 'Produit',
+    index: true
+  },
   client: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Client',
-    required: true,
+    default: null,
     index: true
+  },
+  clientNomAffiche: {
+    type: String,
+    trim: true,
+    default: '',
+    set: nettoyerTexte
   },
   produit: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Produit',
-    required: true,
+    default: null,
+    index: true
+  },
+  sale: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Sale',
+    default: null,
     index: true
   },
   reparations: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Reparation',
-    required: true
+    ref: 'Reparation'
   }],
   date: {
     type: Date,
@@ -47,11 +74,46 @@ const factureSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  taxesActivees: {
+    type: Boolean,
+    default: false
+  },
+  rabais: {
+    type: Number,
+    min: 0,
+    default: 0
+  },
+  montantTPS: {
+    type: Number,
+    min: 0,
+    default: 0
+  },
+  montantTVQ: {
+    type: Number,
+    min: 0,
+    default: 0
+  },
+  totalTaxes: {
+    type: Number,
+    min: 0,
+    default: 0
+  },
+  statutPaiement: {
+    type: String,
+    trim: true,
+    default: '',
+    set: nettoyerTexte
+  },
   envoyeeParEmail: {
     type: Boolean,
     default: false
   },
+  emailEnvoye: {
+    type: Boolean,
+    default: false
+  },
   dateEnvoiEmail: Date,
+  emailEnvoyeLe: Date,
   emailDestinataire: {
     type: String,
     trim: true,
@@ -98,25 +160,60 @@ const factureSchema = new mongoose.Schema({
     type: String,
     trim: true,
     set: nettoyerTexte
+  },
+  pdfPath: {
+    type: String,
+    trim: true,
+    default: '',
+    set: nettoyerTexte
+  },
+  statutFacture: {
+    type: String,
+    enum: ['active', 'annulee'],
+    default: 'active',
+    index: true
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Utilisateur'
+  },
+  updatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Utilisateur'
   }
-});
+}, { timestamps: true });
 
 factureSchema.index({ client: 1, date: -1 });
 factureSchema.index({ produit: 1, date: -1 });
 factureSchema.index({ statut: 1, date: -1 });
 factureSchema.index({ reparations: 1 });
+factureSchema.index({ type: 1, date: -1 });
+factureSchema.index({ sourceModel: 1, sourceId: 1 });
+factureSchema.index(
+  { sale: 1 },
+  { unique: true, partialFilterExpression: { sale: { $type: 'objectId' } } }
+);
 
 const Counter = require('./Counter');
 
 factureSchema.pre('validate', function (next) {
-  if (!this.reparations || this.reparations.length === 0) {
+  if (!this.type) this.type = 'reparation';
+  if (!this.sourceModel) this.sourceModel = this.type === 'vente' ? 'Sale' : 'Produit';
+  if (this.type === 'vente' && this.sale && !this.sourceId) this.sourceId = this.sale;
+  if (this.type === 'reparation' && (!this.reparations || this.reparations.length === 0)) {
     this.invalidate('reparations', 'Au moins une reparation est requise.');
   }
+  this.taxesActivees = Boolean(this.taxesActivees || this.inclureTaxes);
+  this.emailEnvoye = Boolean(this.emailEnvoye || this.envoyeeParEmail);
+  if (this.emailEnvoyeLe && !this.dateEnvoiEmail) this.dateEnvoiEmail = this.emailEnvoyeLe;
+  if (this.dateEnvoiEmail && !this.emailEnvoyeLe) this.emailEnvoyeLe = this.dateEnvoiEmail;
+  if (this.pdfPath && !this.fichierPDF) this.fichierPDF = this.pdfPath;
+  if (this.fichierPDF && !this.pdfPath) this.pdfPath = this.fichierPDF;
   next();
 });
 
 factureSchema.pre('save', async function (next) {
-  if (this.isNew) {
+  if (this.isNew && !this.numeroFacture) {
     const counter = await Counter.findByIdAndUpdate(
       { _id: 'facture' },
       { $inc: { seq: 1 } },

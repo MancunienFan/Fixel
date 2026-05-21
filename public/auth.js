@@ -81,7 +81,9 @@ function appliquerAccesPage(role) {
     '/atelier/atelier.html',
     '/reparation/reparations.html',
     '/reparation/reparation.html',
-    '/sav/sav.html'
+    '/sav/sav.html',
+    '/ventes/ventes.html',
+    '/ventes/vente.html'
   ];
 
   if (!pagesAutorisees.includes(chemin)) {

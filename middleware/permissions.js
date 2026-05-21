@@ -16,14 +16,16 @@ const PERMISSIONS = {
     sav: ['read', 'create', 'update', 'delete'],
     clients: ['read'],
     produits: ['read'],
-    factures: ['read']
+    factures: ['read'],
+    sales: ['read', 'create', 'update']
   },
   consultant: {
     atelier: ['read'],
     reparations: ['read'],
     sav: ['read'],
     clients: ['read'],
-    produits: ['read']
+    produits: ['read'],
+    sales: ['read']
   }
 };
 
