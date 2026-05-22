@@ -143,10 +143,10 @@ function chargerProduits(clientId) {
   });
 
   tr.innerHTML = `
-    <td>${produit.model || ''}</td>
-    <td>${produit.nom || ''}</td>
-    <td>${produit.imei || ''}</td>
-    <td>${produit.datemodificationFormatee}</td>
+    <td>${echapperHtml(produit.model || '')}</td>
+    <td>${echapperHtml(produit.nom || '')}</td>
+    <td>${echapperHtml(produit.imei || '')}</td>
+    <td>${echapperHtml(produit.datemodificationFormatee)}</td>
   `;
   tbody.appendChild(tr);
 });

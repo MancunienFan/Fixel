@@ -92,6 +92,7 @@
           <option value="paye">PayÃ©</option>
           <option value="partiellement paye">Partiellement payÃ©</option>
           <option value="non paye">Non payÃ©</option>
+          <option value="annulee">AnnulÃ©</option>
         </select>
       </label>
 
@@ -136,10 +137,17 @@
       Factures affichées : <strong id="facturesCount">0</strong>
     </p>
 
+    <div class="bulk-actions" aria-label="Actions de suppression des factures">
+      <span>Factures sélectionnées : <strong id="facturesSelectedCount">0</strong></span>
+      <button type="button" id="btnDeleteSelectedFactures" disabled>Supprimer les factures sélectionnées</button>
+      <button type="button" id="btnClearSelectedFactures">Désélectionner</button>
+    </div>
+
     <div class="table-container">
       <table id="facturesTable">
         <thead>
           <tr>
+            <th><input type="checkbox" id="selectAllFactures" aria-label="Sélectionner les factures supprimables"></th>
             <th>No facture</th>
             <th>Date</th>
             <th>Type</th>
@@ -155,7 +163,7 @@
         </thead>
         <tbody>
           <tr>
-            <td colspan="11">Chargement des factures...</td>
+            <td colspan="12">Chargement des factures...</td>
           </tr>
         </tbody>
       </table>

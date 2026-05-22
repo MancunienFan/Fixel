@@ -2,14 +2,34 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
 const path = require('path');
 const verifierToken = require('./middleware/verifierToken');
 
 
 
 const app = express();
-app.use(cors());
+const isProduction = process.env.NODE_ENV === 'production';
+const frontendOrigin = process.env.FRONTEND_ORIGIN;
+const localhostRegex = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
+
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (frontendOrigin && origin === frontendOrigin) return callback(null, true);
+    if (!isProduction && localhostRegex.test(origin)) return callback(null, true);
+    return callback(new Error('Origine CORS non autorisee.'));
+  },
+  credentials: true
+}));
 app.use(express.json());
+app.use(mongoSanitize());
 app.use(express.static(path.join(__dirname, 'public')));
 // Connexion MongoDB
 mongoose.connect(process.env.MONGO_URI)
@@ -18,6 +38,14 @@ mongoose.connect(process.env.MONGO_URI)
 
 //utilisateur
 const utilisateurRoutes = require('./routes/utilisateurRoutes');
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erreur: 'Trop de tentatives de connexion. Reessayez plus tard.' }
+});
+app.use('/api/utilisateurs/login', loginLimiter);
 app.use('/api/utilisateurs', utilisateurRoutes);
 
 // Toutes les routes metier sous /api exigent un token valide.
@@ -31,7 +59,13 @@ app.use('/api', reparationRoutes);
 
 // Detection locale des appareils branches au PC
 const deviceRoutes = require('./routes/deviceRoutes');
-app.use('/api/device', deviceRoutes);
+if (!isProduction || process.env.ENABLE_DEVICE_DETECT === 'true') {
+  app.use('/api/device', deviceRoutes);
+} else {
+  app.use('/api/device/detect', (req, res) => {
+    res.status(404).json({ message: 'Route API introuvable.' });
+  });
+}
 
 //clients
 const clientRoutes = require('./routes/clientRoutes');

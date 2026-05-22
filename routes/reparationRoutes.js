@@ -18,6 +18,24 @@ function idInvalide(id) {
   return !mongoose.Types.ObjectId.isValid(id);
 }
 
+const CHAMPS_REPARATION_UPDATE_AUTORISES = [
+  'produit',
+  'client',
+  'description',
+  'date',
+  'prix',
+  'coutPiece',
+  'statut',
+  'notes',
+  'dateReception',
+  'dateDiagnostic',
+  'dateAttentePiece',
+  'dateDebutReparation',
+  'datePret',
+  'dateLivraison',
+  'dateAnnulation'
+];
+
 router.get('/reparations/produit/:id', requirePermission('reparations', 'read'), async (req, res) => {
   try {
     if (idInvalide(req.params.id)) {
@@ -289,9 +307,7 @@ function repondreErreurCreation(res, err) {
 }
 
 function preparerUpdateReparation(body, reparationExistante) {
-  const updateData = { ...body };
-  delete updateData.historiqueStatuts;
-  delete updateData.noteTransition;
+  const updateData = selectionnerChamps(body, CHAMPS_REPARATION_UPDATE_AUTORISES);
 
   if (updateData.prix !== undefined) {
     updateData.prix = Number(updateData.prix);
@@ -310,6 +326,13 @@ function preparerUpdateReparation(body, reparationExistante) {
   }
 
   return updateData;
+}
+
+function selectionnerChamps(source, champsAutorises) {
+  return champsAutorises.reduce((payload, champ) => {
+    if (Object.prototype.hasOwnProperty.call(source, champ)) payload[champ] = source[champ];
+    return payload;
+  }, {});
 }
 
 function montant(valeur) {

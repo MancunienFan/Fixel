@@ -34,14 +34,24 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = `client.html?id=${client._id}`;
           };
         tr.innerHTML = `
-          <td><a href="client.html?id=${client._id}">${client.nom}</a></td>
-          <td>${client.prenom}</td>
-          <td>${client.telephone}</td>
-          <td>${client.email}</td>
-          <td>${client.datecreationFormatte}</td>
+          <td><a href="client.html?id=${encodeURIComponent(client._id)}">${echapperHtml(client.nom)}</a></td>
+          <td>${echapperHtml(client.prenom)}</td>
+          <td>${echapperHtml(client.telephone)}</td>
+          <td>${echapperHtml(client.email)}</td>
+          <td>${echapperHtml(client.datecreationFormatte)}</td>
         `;
         tbody.appendChild(tr);
       });
     }
 
     chargerClients();
+
+function echapperHtml(valeur) {
+  return (valeur || '').toString().replace(/[&<>"']/g, caractere => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[caractere]));
+}

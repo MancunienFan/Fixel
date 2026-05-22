@@ -90,7 +90,7 @@ const saleSchema = new mongoose.Schema({
   },
   statutPaiement: {
     type: String,
-    enum: ['paye', 'partiellement paye', 'non paye'],
+    enum: ['paye', 'partiellement paye', 'non paye', 'annulee'],
     default: 'non paye',
     index: true
   },
@@ -109,6 +109,12 @@ const saleSchema = new mongoose.Schema({
   factureDate: Date,
   factureEnvoyee: { type: Boolean, default: false, index: true },
   factureEnvoyeeLe: Date,
+  factureSupprimee: { type: Boolean, default: false, index: true },
+  factureSupprimeeLe: Date,
+  factureSupprimeePar: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Utilisateur'
+  },
   envoyerFactureEmail: { type: Boolean, default: false },
   emailFacture: { type: String, trim: true, lowercase: true, default: '' },
   erreurEnvoiFacture: { type: String, trim: true, default: '' },

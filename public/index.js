@@ -16,11 +16,13 @@ let triActuel = {
   direction: 'asc'
 };
 
+initialiserFiltreStatut();
+
 fetch('/api/produits')
   .then(res => res.json())
   .then(produits => {
     produitsCache = produits;
-    afficherProduits(appliquerTri(produitsCache));
+    appliquerFiltres();
   })
   .catch(err => {
     console.error('Erreur chargement produits:', err);
@@ -59,7 +61,7 @@ sortButtons.forEach(button => {
 });
 
 btnResetFiltres.addEventListener('click', () => {
-  filtreStatut.value = '';
+  filtreStatut.value = 'disponible';
   filtreDateType.value = 'dateachat';
   filtreAnnee.value = '';
   filtreDateDebut.value = '';
@@ -68,8 +70,16 @@ btnResetFiltres.addEventListener('click', () => {
     champ: null,
     direction: 'asc'
   };
-  afficherProduits(appliquerTri(produitsCache));
+  appliquerFiltres();
 });
+
+function initialiserFiltreStatut() {
+  const params = new URLSearchParams(window.location.search);
+  const statutUrl = params.get('statut') || params.get('disponibilite');
+  const valeursAutorisees = ['', 'disponible', 'vendu', 'pieces'];
+
+  filtreStatut.value = valeursAutorisees.includes(statutUrl) ? statutUrl : 'disponible';
+}
 
 function appliquerFiltres() {
   const statut = filtreStatut.value;
@@ -152,13 +162,13 @@ function afficherProduits(produits) {
     const estVendu = normaliserStatut(produit.disponibilite) === 'vendu';
 
     tr.innerHTML = `
-      <td>${produit.nom || ''}</td>
-      <td>${produit.statut || ''}</td>
+      <td>${echapperHtml(produit.nom || '')}</td>
+      <td>${echapperHtml(produit.statut || '')}</td>
       <td>${formatMontant(produit.prix)}</td>
-      <td>${produit.disponibilite || ''}</td>
-      <td>${produit.dateachatFormatee || formatDate(produit.dateachat)}</td>
-      <td>${estVendu ? (produit.dateventeFormatee || formatDate(produit.datevente)) : ''}</td>
-      <td>${produit.datemodificationFormatee || formatDate(produit.datemodification)}</td>
+      <td>${echapperHtml(produit.disponibilite || '')}</td>
+      <td>${echapperHtml(produit.dateachatFormatee || formatDate(produit.dateachat))}</td>
+      <td>${echapperHtml(estVendu ? (produit.dateventeFormatee || formatDate(produit.datevente)) : '')}</td>
+      <td>${echapperHtml(produit.datemodificationFormatee || formatDate(produit.datemodification))}</td>
     `;
     tbody.appendChild(tr);
 
@@ -220,6 +230,16 @@ function normaliserStatut(statut) {
   if (valeur === 'vendu' || valeur === 'sold') return 'vendu';
   if (valeur.includes('piece')) return 'pieces';
   return valeur;
+}
+
+function echapperHtml(valeur) {
+  return (valeur || '').toString().replace(/[&<>"']/g, caractere => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[caractere]));
 }
 
 function logout() {

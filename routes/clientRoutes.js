@@ -9,6 +9,8 @@ const Sale = require('../models/Sale');
 const { SavReturn } = require('../models/savReturnModel');
 const { requirePermission, requireRole } = require('../middleware/permissions');
 
+const CHAMPS_CLIENT_AUTORISES = ['nom', 'prenom', 'telephone', 'email', 'notes'];
+
 router.get('/', requirePermission('clients', 'read'), async (req, res) => {
   try {
     const clients = await Client.find().sort({ dateModification: -1 });
@@ -53,9 +55,12 @@ router.put('/:id', requireRole('admin'), async (req, res) => {
       return res.status(400).json({ erreur: 'ID client invalide.' });
     }
 
+    const updateData = selectionnerChamps(req.body, CHAMPS_CLIENT_AUTORISES);
+    updateData.dateModification = new Date();
+
     const updated = await Client.findByIdAndUpdate(
       req.params.id,
-      { ...req.body, dateModification: new Date() },
+      updateData,
       { new: true, runValidators: true }
     );
 
@@ -95,5 +100,12 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
     res.status(500).json({ erreur: err.message });
   }
 });
+
+function selectionnerChamps(source, champsAutorises) {
+  return champsAutorises.reduce((payload, champ) => {
+    if (Object.prototype.hasOwnProperty.call(source, champ)) payload[champ] = source[champ];
+    return payload;
+  }, {});
+}
 
 module.exports = router;

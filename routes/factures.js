@@ -12,13 +12,15 @@ const { genererPDF } = require('../utils/pdfGenerator');
 const envoyerFactureParEmail = require('../utils/emailSender');
 const { sendEmail } = require('../utils/emailSender');
 const { genererFactureVentePDF } = require('../utils/saleInvoiceGenerator');
+const { SALES_INVOICE_STORAGE_DIR, cheminDansStockageFactures, masquerCheminsFacture } = require('../utils/invoiceStorage');
+const { messageErreurPublique } = require('../utils/apiError');
 
 const Client = require('../models/clientModel');
 const Produit = require('../models/produitModel');
 const Reparation = require('../models/reparationModel');
 const { requirePermission, requireRole } = require('../middleware/permissions');
 
-const DOSSIER_FACTURES_VENTES = path.join(__dirname, '..', 'public', 'generated', 'sales-invoices');
+const DOSSIER_FACTURES_VENTES = SALES_INVOICE_STORAGE_DIR;
 
 router.get('/', requirePermission('factures', 'read'), async (req, res) => {
   try {
@@ -31,7 +33,7 @@ router.get('/', requirePermission('factures', 'read'), async (req, res) => {
       .populate('sale', 'numeroVente dateVente total statutPaiement modePaiement statut statutVente annuleeLe deletedAt')
       .sort({ date: -1, numeroFacture: -1 });
 
-    res.json(factures);
+    res.json(masquerCheminsFacture(factures));
   } catch (err) {
     console.error('Erreur liste factures :', err);
     res.status(500).json({ error: 'Erreur serveur' });
@@ -51,7 +53,7 @@ router.get('/:id', requirePermission('factures', 'read'), async (req, res) => {
       .populate('sale');
 
     if (!facture) return res.status(404).json({ error: 'Facture introuvable' });
-    res.json(facture);
+    res.json(masquerCheminsFacture(facture));
   } catch (err) {
     console.error('Erreur detail facture :', err);
     res.status(500).json({ error: 'Erreur serveur' });
@@ -184,7 +186,7 @@ router.put('/:id/statut', requireRole('admin'), async (req, res) => {
     );
 
     if (!facture) return res.status(404).json({ error: 'Facture introuvable' });
-    res.json(facture);
+    res.json(masquerCheminsFacture(facture));
   } catch (err) {
     console.error('Erreur statut facture :', err);
     res.status(500).json({ error: 'Erreur serveur' });
@@ -249,7 +251,7 @@ router.post('/:id/send-email', requirePermission('factures', 'update'), async (r
       const resultat = await envoyerFactureVenteDepuisFacture(facture, req.body.emailFacture || req.body.email);
       return res.status(resultat.ok ? 200 : 502).json({
         message: resultat.ok ? 'Facture envoyee.' : 'Facture generee, mais envoi echoue.',
-        facture: await Facture.findById(facture._id).populate('client', 'nom prenom email telephone').populate('sale')
+        facture: masquerCheminsFacture(await Facture.findById(facture._id).populate('client', 'nom prenom email telephone').populate('sale'))
       });
     }
 
@@ -280,10 +282,90 @@ router.post('/:id/send-email', requirePermission('factures', 'update'), async (r
     facture.statut = 'envoyee';
     await facture.save();
 
-    res.json({ message: 'Facture envoyee.', facture });
+    res.json({ message: 'Facture envoyee.', facture: masquerCheminsFacture(facture) });
   } catch (err) {
     console.error('Erreur envoi facture :', err);
-    res.status(500).json({ error: err.message || 'Erreur serveur' });
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+router.delete('/bulk', requirePermission('factures', 'delete'), async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body && req.body.ids) ? req.body.ids : [];
+    const idsUniques = [...new Set(ids.map(id => String(id || '').trim()).filter(Boolean))];
+    const idsValides = idsUniques.filter(id => mongoose.Types.ObjectId.isValid(id));
+    const idsInvalides = idsUniques.filter(id => !mongoose.Types.ObjectId.isValid(id));
+
+    const factures = idsValides.length
+      ? await Facture.find({ _id: { $in: idsValides } }).populate('sale', 'statut statutVente annuleeLe deletedAt statutPaiement factureGeneree factureId')
+      : [];
+    const facturesParId = new Map(factures.map(facture => [String(facture._id), facture]));
+    const facturesSupprimables = [];
+    const ignorees = [];
+
+    idsInvalides.forEach(id => {
+      ignorees.push({ id, raison: 'ID facture invalide.' });
+    });
+
+    idsValides.forEach(id => {
+      const facture = facturesParId.get(id);
+      if (!facture) {
+        ignorees.push({ id, raison: 'Facture introuvable.' });
+        return;
+      }
+
+      if (!factureSupprimable(facture)) {
+        ignorees.push({
+          id,
+          numeroFacture: facture.numeroFacture,
+          raison: 'Seules les factures annulees peuvent etre supprimees.'
+        });
+        return;
+      }
+
+      facturesSupprimables.push(facture);
+    });
+
+    const idsASupprimer = facturesSupprimables.map(facture => facture._id);
+    if (idsASupprimer.length) {
+      for (const facture of facturesSupprimables) {
+        await preparerSuppressionFacture(facture, req.utilisateur);
+      }
+      await Facture.deleteMany({ _id: { $in: idsASupprimer } });
+    }
+
+    res.json({
+      demandes: idsUniques.length,
+      supprimees: idsASupprimer.length,
+      ignorees: ignorees.length,
+      facturesIgnorees: ignorees,
+      idsSupprimes: idsASupprimer.map(String)
+    });
+  } catch (err) {
+    console.error('Erreur suppression factures :', err);
+    res.status(500).json({ erreur: 'Erreur serveur' });
+  }
+});
+
+router.delete('/:id', requirePermission('factures', 'delete'), async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ erreur: 'ID facture invalide.' });
+    }
+
+    const facture = await Facture.findById(req.params.id).populate('sale', 'statut statutVente annuleeLe deletedAt statutPaiement factureGeneree factureId');
+    if (!facture) return res.status(404).json({ erreur: 'Facture introuvable.' });
+
+    if (!factureSupprimable(facture)) {
+      return res.status(403).json({ erreur: 'Seules les factures annulees peuvent etre supprimees.' });
+    }
+
+    await preparerSuppressionFacture(facture, req.utilisateur);
+    await Facture.findByIdAndDelete(facture._id);
+    res.json({ message: 'Facture supprimee.', id: String(facture._id) });
+  } catch (err) {
+    console.error('Erreur suppression facture :', err);
+    res.status(500).json({ erreur: 'Erreur serveur' });
   }
 });
 
@@ -314,8 +396,65 @@ function construireFiltreFactures(query) {
   return filtre;
 }
 
+function factureSupprimable(facture) {
+  return Boolean(
+    facture
+    && (
+      facture.statutFacture === 'annulee'
+      || facture.statut === 'annulee'
+      || facture.statutPaiement === 'annulee'
+      || (
+        facture.sale
+        && (
+          facture.sale.statut === 'annulee'
+          || facture.sale.statutVente === 'annulee'
+          || facture.sale.annuleeLe
+          || facture.sale.deletedAt
+        )
+      )
+    )
+  );
+}
+
+async function preparerSuppressionFacture(facture, utilisateur) {
+  if (facture.type === 'vente') {
+    await marquerVenteFactureSupprimee(facture, utilisateur);
+  }
+
+  facture.statutPaiement = 'annulee';
+  facture.statut = 'annulee';
+  facture.statutFacture = 'annulee';
+  await facture.save();
+}
+
+async function marquerVenteFactureSupprimee(facture, utilisateur) {
+  const vente = await trouverVenteLieeFacture(facture);
+  if (!vente) return;
+
+  vente.statutPaiement = 'annulee';
+  vente.factureSupprimee = true;
+  vente.factureSupprimeeLe = new Date();
+  vente.factureSupprimeePar = utilisateur && utilisateur.id;
+  vente.factureGeneree = false;
+  vente.factureId = null;
+  vente.factureEnvoyee = false;
+  vente.envoyerFactureEmail = false;
+  vente.erreurEnvoiFacture = '';
+  await vente.save();
+}
+
+async function trouverVenteLieeFacture(facture) {
+  const saleId = facture.sale && facture.sale._id ? facture.sale._id : facture.sale || facture.sourceId;
+  if (saleId && mongoose.Types.ObjectId.isValid(saleId)) {
+    const vente = await Sale.findById(saleId);
+    if (vente) return vente;
+  }
+
+  return Sale.findOne({ factureId: facture._id });
+}
+
 async function synchroniserFacturesVentesManquantes() {
-  const ventes = await Sale.find({ factureGeneree: true })
+  const ventes = await Sale.find({ factureGeneree: true, factureSupprimee: { $ne: true } })
     .populate('client', 'nom prenom email telephone')
     .limit(200);
 
@@ -401,7 +540,7 @@ async function numeroFactureDejaUtilise(numero, venteId) {
 }
 
 async function obtenirPdfFactureVente(facture) {
-  if (facture.pdfPath && await fichierExiste(facture.pdfPath)) return facture.pdfPath;
+  if (cheminDansStockageFactures(facture.pdfPath) && await fichierExiste(facture.pdfPath)) return facture.pdfPath;
 
   const venteId = facture.sale || facture.sourceId;
   if (!venteId) throw new Error('Vente liee introuvable.');
@@ -476,10 +615,10 @@ async function envoyerFactureVenteDepuisFacture(facture, email) {
     if (vente) {
       vente.emailFacture = emailFinal;
       vente.factureEnvoyee = false;
-      vente.erreurEnvoiFacture = err.message || 'Erreur envoi facture';
+      vente.erreurEnvoiFacture = messageErreurPublique(err, 'Erreur envoi facture');
       await vente.save();
     }
-    return { ok: false, erreur: err.message || 'Erreur envoi facture' };
+    return { ok: false, erreur: messageErreurPublique(err, 'Erreur envoi facture') };
   }
 }
 

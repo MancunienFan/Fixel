@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 const verifierToken = require('../middleware/verifierToken');
 const { ROLES_AUTORISES } = require('../middleware/permissions');
 const { sendEmail } = require('../utils/emailSender');
+const { messageErreurPublique } = require('../utils/apiError');
 
 const INVITATION_EXPIRATION_HEURES = 48;
 
@@ -232,19 +233,19 @@ router.post('/login', async (req, res) => {
 
     res.json({ token, role: utilisateur.role });
   } catch (err) {
-    res.status(500).json({ erreur: err.message });
+    res.status(500).json({ erreur: 'Erreur serveur' });
   }
 });
 
 router.get('/profil', verifierToken(), async (req, res) => {
   try {
-    const utilisateur = await Utilisateur.findById(req.utilisateur.id).select('-motdepasse');
+    const utilisateur = await Utilisateur.findById(req.utilisateur.id).select('-motdepasse -invitationTokenHash');
     if (!utilisateur) {
       return res.status(404).json({ erreur: 'Utilisateur introuvable.' });
     }
     res.json(utilisateur);
   } catch (err) {
-    res.status(500).json({ erreur: err.message });
+    res.status(500).json({ erreur: 'Erreur serveur' });
   }
 });
 
@@ -254,7 +255,7 @@ router.get('/liste', verifierToken(['admin']), async (req, res) => {
     const utilisateurs = await Utilisateur.find().select('-motdepasse -invitationTokenHash').sort({ dateCreation: -1 });
     res.json(utilisateurs);
   } catch (err) {
-    res.status(500).json({ erreur: err.message });
+    res.status(500).json({ erreur: 'Erreur serveur' });
   }
 });
 
@@ -289,7 +290,7 @@ router.put('/:id/role', verifierToken(['admin']), async (req, res) => {
       req.params.id,
       { role: req.body.role },
       { new: true }
-    ).select('-motdepasse');
+    ).select('-motdepasse -invitationTokenHash');
 
     if (!utilisateur) {
       return res.status(404).json({ erreur: 'Utilisateur introuvable.' });
@@ -297,7 +298,7 @@ router.put('/:id/role', verifierToken(['admin']), async (req, res) => {
 
     res.json({ message: 'Role mis a jour.', utilisateur });
   } catch (err) {
-    res.status(500).json({ erreur: err.message });
+    res.status(500).json({ erreur: 'Erreur serveur' });
   }
 });
 
@@ -361,14 +362,14 @@ router.put('/:id', verifierToken(['admin']), async (req, res) => {
       req.params.id,
       updateData,
       { new: true, runValidators: true }
-    ).select('-motdepasse');
+    ).select('-motdepasse -invitationTokenHash');
 
     res.json({ message: 'Utilisateur mis a jour.', utilisateur });
   } catch (err) {
     if (err.code === 11000) {
       return res.status(409).json({ erreur: 'Email deja utilise.' });
     }
-    res.status(400).json({ erreur: err.message });
+    res.status(400).json({ erreur: messageErreurPublique(err, 'Erreur utilisateur') });
   }
 });
 
@@ -402,7 +403,7 @@ router.delete('/:id', verifierToken(['admin']), async (req, res) => {
     await utilisateur.deleteOne();
     res.json({ message: 'Utilisateur supprime.' });
   } catch (err) {
-    res.status(500).json({ erreur: err.message });
+    res.status(500).json({ erreur: 'Erreur serveur' });
   }
 });
 

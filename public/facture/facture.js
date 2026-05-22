@@ -1,5 +1,9 @@
 let clientsCache = [];
 let facturesCache = [];
+let facturesAffichees = [];
+const facturesSelectionnees = new Set();
+const roleUtilisateur = localStorage.getItem('role') || '';
+const peutSupprimerFactures = roleUtilisateur === 'admin';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const clientSelect = document.getElementById('clientSelect');
@@ -15,6 +19,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const checkboxContainer = document.getElementById('checkboxContainer');
   const facturesTableBody = document.querySelector('#facturesTable tbody');
   const btnRefreshFactures = document.getElementById('btnRefreshFactures');
+  const selectAllFactures = document.getElementById('selectAllFactures');
+  const btnDeleteSelectedFactures = document.getElementById('btnDeleteSelectedFactures');
+  const btnClearSelectedFactures = document.getElementById('btnClearSelectedFactures');
   const champsFiltres = [
     'rechercheNumeroFacture',
     'rechercheClientFacture',
@@ -33,6 +40,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   ]);
 
   btnRefreshFactures.addEventListener('click', () => chargerFactures(facturesTableBody));
+  selectAllFactures.addEventListener('change', () => {
+    selectionnerToutesFacturesSupprimables(selectAllFactures.checked);
+    afficherFacturesFiltrees(facturesTableBody);
+  });
+  btnDeleteSelectedFactures.addEventListener('click', supprimerFacturesSelectionnees);
+  btnClearSelectedFactures.addEventListener('click', () => {
+    facturesSelectionnees.clear();
+    afficherFacturesFiltrees(facturesTableBody);
+  });
   champsFiltres.forEach(input => {
     input.addEventListener('input', () => afficherFacturesFiltrees(facturesTableBody));
     input.addEventListener('change', () => afficherFacturesFiltrees(facturesTableBody));
@@ -184,10 +200,11 @@ async function chargerClients(clientSelect) {
 async function chargerFactures(tbody) {
   try {
     facturesCache = await fetch('/api/factures').then(res => res.json());
+    nettoyerSelectionFactures();
     afficherFacturesFiltrees(tbody);
   } catch (err) {
     console.error('Erreur chargement factures :', err);
-    tbody.innerHTML = '<tr><td colspan="11">Erreur lors du chargement des factures.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12">Erreur lors du chargement des factures.</td></tr>';
   }
 }
 
@@ -225,13 +242,16 @@ function filtrerFactures() {
 }
 
 function afficherFactures(tbody, factures) {
+  facturesAffichees = factures;
+  nettoyerSelectionFactures();
   tbody.innerHTML = '';
 
   const facturesCount = document.getElementById('facturesCount');
   if (facturesCount) facturesCount.textContent = factures.length;
 
   if (!factures.length) {
-    tbody.innerHTML = '<tr><td colspan="11">Aucune facture generee pour le moment.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12">Aucune facture generee pour le moment.</td></tr>';
+    mettreAJourSelectionFactures();
     return;
   }
 
@@ -240,8 +260,14 @@ function afficherFactures(tbody, factures) {
     const statutFacture = statutFactureEffectif(facture);
     const pdfDisponible = pdfFactureDisponible(facture);
     const emailEnvoye = Boolean(facture.emailEnvoye || facture.envoyeeParEmail);
+    const supprimable = factureSupprimable(facture);
+    const selectionnable = supprimable && peutSupprimerFactures;
+    const cochee = facturesSelectionnees.has(facture._id);
 
     tr.innerHTML = `
+      <td>
+        <input type="checkbox" data-select-facture="${facture._id}" ${cochee ? 'checked' : ''} ${selectionnable ? '' : 'disabled'} title="${selectionnable ? 'Selectionner cette facture' : 'Suppression possible seulement si la facture est annulee'}">
+      </td>
       <td>${formatNumeroFacture(facture.numeroFacture)}</td>
       <td>${formatDate(facture.date || facture.dateEmission)}</td>
       <td>${renderBadge(libelleTypeFacture(facture.type), facture.type === 'vente' ? 'info' : 'neutral')}</td>
@@ -256,6 +282,7 @@ function afficherFactures(tbody, factures) {
         <button type="button" class="table-action" data-download="${facture._id}" data-taxes="${facture.inclureTaxes ? 'true' : 'false'}">PDF</button>
         <button type="button" class="table-action" data-email="${facture._id}">Email</button>
         ${renderSourceAction(facture)}
+        ${renderDeleteAction(facture)}
       </td>
     `;
 
@@ -271,6 +298,104 @@ function afficherFactures(tbody, factures) {
 
   tbody.querySelectorAll('[data-email]').forEach(button => {
     button.addEventListener('click', () => envoyerFactureEmail(button.dataset.email));
+  });
+
+  tbody.querySelectorAll('[data-delete-facture]').forEach(button => {
+    button.addEventListener('click', () => supprimerFacture(button.dataset.deleteFacture));
+  });
+
+  tbody.querySelectorAll('[data-select-facture]').forEach(checkbox => {
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) facturesSelectionnees.add(checkbox.dataset.selectFacture);
+      else facturesSelectionnees.delete(checkbox.dataset.selectFacture);
+      mettreAJourSelectionFactures();
+    });
+  });
+
+  mettreAJourSelectionFactures();
+}
+
+async function supprimerFacture(factureId) {
+  const facture = facturesCache.find(item => item._id === factureId);
+  if (!factureSupprimable(facture)) {
+    alert('Seules les factures annulees peuvent etre supprimees.');
+    return;
+  }
+
+  if (!confirm('Voulez-vous vraiment supprimer cette facture ? Cette action est irreversible.')) return;
+
+  const response = await fetch(`/api/factures/${factureId}`, { method: 'DELETE' });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    alert(data.erreur || data.error || 'Suppression impossible.');
+    return;
+  }
+
+  facturesSelectionnees.clear();
+  await chargerFactures(document.querySelector('#facturesTable tbody'));
+  alert('Facture supprimee avec succes.');
+}
+
+async function supprimerFacturesSelectionnees() {
+  const idsAffiches = new Set(facturesAffichees.map(facture => facture._id));
+  const ids = Array.from(facturesSelectionnees).filter(id => {
+    if (!idsAffiches.has(id)) return false;
+    const facture = facturesCache.find(item => item._id === id);
+    return factureSupprimable(facture);
+  });
+
+  if (!ids.length) return;
+  if (!confirm(`Voulez-vous vraiment supprimer les ${ids.length} factures selectionnees ? Cette action est irreversible.`)) return;
+
+  const response = await fetch('/api/factures/bulk', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    alert(data.erreur || data.error || 'Suppression multiple impossible.');
+    return;
+  }
+
+  facturesSelectionnees.clear();
+  await chargerFactures(document.querySelector('#facturesTable tbody'));
+
+  const message = `${data.supprimees || 0} factures supprimees avec succes. ${data.ignorees || 0} ignoree(s).`;
+  alert(message);
+}
+
+function selectionnerToutesFacturesSupprimables(selectionner) {
+  facturesAffichees.forEach(facture => {
+    if (!factureSupprimable(facture) || !peutSupprimerFactures) return;
+    if (selectionner) facturesSelectionnees.add(facture._id);
+    else facturesSelectionnees.delete(facture._id);
+  });
+}
+
+function mettreAJourSelectionFactures() {
+  const selectedCount = document.getElementById('facturesSelectedCount');
+  const btnDeleteSelected = document.getElementById('btnDeleteSelectedFactures');
+  const selectAll = document.getElementById('selectAllFactures');
+  const idsSelectionnables = facturesAffichees
+    .filter(facture => factureSupprimable(facture) && peutSupprimerFactures)
+    .map(facture => facture._id);
+  const nombreSelectionne = idsSelectionnables.filter(id => facturesSelectionnees.has(id)).length;
+
+  if (selectedCount) selectedCount.textContent = nombreSelectionne;
+  if (btnDeleteSelected) btnDeleteSelected.disabled = nombreSelectionne === 0;
+  if (selectAll) {
+    selectAll.disabled = idsSelectionnables.length === 0;
+    selectAll.checked = idsSelectionnables.length > 0 && nombreSelectionne === idsSelectionnables.length;
+    selectAll.indeterminate = nombreSelectionne > 0 && nombreSelectionne < idsSelectionnables.length;
+  }
+}
+
+function nettoyerSelectionFactures() {
+  const idsExistants = new Set(facturesCache.map(facture => facture._id));
+  Array.from(facturesSelectionnees).forEach(id => {
+    const facture = facturesCache.find(item => item._id === id);
+    if (!idsExistants.has(id) || !factureSupprimable(facture)) facturesSelectionnees.delete(id);
   });
 }
 
@@ -339,6 +464,15 @@ function renderSourceAction(facture) {
   return '';
 }
 
+function renderDeleteAction(facture) {
+  const supprimable = factureSupprimable(facture);
+  if (supprimable && peutSupprimerFactures) {
+    return `<button type="button" class="table-action table-action-danger" data-delete-facture="${facture._id}">Supprimer</button>`;
+  }
+
+  return `<button type="button" class="table-action" disabled title="${peutSupprimerFactures ? 'Suppression possible seulement si la facture est annulee' : 'Suppression reservee aux administrateurs'}">Supprimer</button>`;
+}
+
 function nomClientFacture(facture) {
   if (facture.client) {
     return `${facture.client.nom || ''} ${facture.client.prenom || ''}`.trim() || facture.client.email || 'Client';
@@ -364,7 +498,7 @@ function libelleStatutPaiement(facture) {
 }
 
 function pdfFactureDisponible(facture) {
-  return Boolean(facture.pdfPath || facture.fichierPDF || facture.type === 'reparation' || facture.type === 'vente');
+  return Boolean(facture.pdfDisponible || facture.type === 'reparation' || facture.type === 'vente');
 }
 
 function statutFactureEffectif(facture) {
@@ -373,6 +507,11 @@ function statutFactureEffectif(facture) {
     return 'annulee';
   }
   return 'active';
+}
+
+function factureSupprimable(facture) {
+  return statutFactureEffectif(facture || {}) === 'annulee'
+    || (facture && facture.statutPaiement === 'annulee');
 }
 
 function renderBadge(label, variante) {

@@ -13,6 +13,22 @@ function idInvalide(id) {
   return !mongoose.Types.ObjectId.isValid(id);
 }
 
+const CHAMPS_PRODUIT_AUTORISES = [
+  'nom',
+  'statut',
+  'prix',
+  'categorie',
+  'etatbatterie',
+  'model',
+  'prixachat',
+  'prixvente',
+  'dateachat',
+  'datevente',
+  'imei',
+  'disponibilite',
+  'notes'
+];
+
 router.get('/produits', requirePermission('produits', 'read'), async (req, res) => {
   try {
     const produits = await Produit.find({ type: 'stock' }).sort({ dateachat: -1 });
@@ -26,7 +42,7 @@ router.get('/produits', requirePermission('produits', 'read'), async (req, res) 
 router.post('/produits', requireRole('admin'), async (req, res) => {
   try {
     const produit = new Produit({
-      ...req.body,
+      ...selectionnerChamps(req.body, CHAMPS_PRODUIT_AUTORISES),
       type: req.body.type || 'stock'
     });
     await produit.save();
@@ -69,10 +85,8 @@ router.put('/produit/:id', requireRole('admin'), async (req, res) => {
       return res.status(400).json({ erreur: 'ID produit invalide.' });
     }
 
-    const updateData = {
-      ...req.body,
-      datemodification: new Date()
-    };
+    const updateData = selectionnerChamps(req.body, CHAMPS_PRODUIT_AUTORISES);
+    updateData.datemodification = new Date();
 
     const produit = await Produit.findByIdAndUpdate(
       req.params.id,
@@ -140,7 +154,7 @@ router.post('/produits/client/:clientId', requireRole('admin'), async (req, res)
     }
 
     const nouveauProduit = new Produit({
-      ...req.body,
+      ...selectionnerChamps(req.body, CHAMPS_PRODUIT_AUTORISES),
       clientId: req.params.clientId,
       type: 'client',
       dateCreation: new Date(),
@@ -158,5 +172,12 @@ router.post('/produits/client/:clientId', requireRole('admin'), async (req, res)
     res.status(400).json({ erreur: err.message });
   }
 });
+
+function selectionnerChamps(source, champsAutorises) {
+  return champsAutorises.reduce((payload, champ) => {
+    if (Object.prototype.hasOwnProperty.call(source, champ)) payload[champ] = source[champ];
+    return payload;
+  }, {});
+}
 
 module.exports = router;

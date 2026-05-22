@@ -90,12 +90,13 @@ router.get('/stats', requireRole('admin'), async (req, res) => {
     const ventesMois = ventes.filter(vente => estDansPeriode(vente.dateVente, debutPeriode, finPeriode));
     const produitsVendusLegacyMois = produitsVendusLegacy.filter(produit => estDansPeriode(produit.dateVenteDashboard, debutPeriode, finPeriode));
     const produitsVendusMois = compterProduitsVendusDansVentes(ventesMois) + produitsVendusLegacyMois.length;
-    const produitsDisponibles = produits.filter(produit => normaliserTexte(produit.disponibilite) === 'disponible');
-    const produitsPourPieces = produits.filter(produit => normaliserTexte(produit.disponibilite).includes('piece'));
+    const stockPeriode = calculerStockPeriode(produits, ventesMois, produitsVendusLegacyMois, debutPeriode, finPeriode);
 
     const facturesPayees = factures.filter(facture => facture.statut === 'payee');
     const facturesImpayees = factures.filter(facture => ['emise', 'envoyee'].includes(facture.statut));
     const facturesImpayeesMois = facturesImpayees.filter(facture => estDansPeriode(dateReferenceFacture(facture), debutPeriode, finPeriode));
+    const facturesPeriode = factures.filter(facture => estDansPeriode(dateReferencePeriodeFacture(facture), debutPeriode, finPeriode));
+    const facturesPayeesPeriode = facturesPeriode.filter(facture => facture.statut === 'payee');
     const factureParReparation = indexerFacturesParReparation(factures);
     const reparationsAvecRevenu = reparations
       .map(reparation => ajouterRevenuReparation(reparation, factureParReparation))
@@ -126,6 +127,8 @@ router.get('/stats', requireRole('admin'), async (req, res) => {
     const repartitionsReparationsMois = compterReparationsParStatut(
       reparations.filter(reparation => estDansPeriode(dateReferenceStatutReparation(reparation), debutPeriode, finPeriode))
     );
+    const reparationsPeriode = reparations.filter(reparation => reparationDansPeriode(reparation, debutPeriode, finPeriode));
+    const repartitionsReparationsPeriode = compterReparationsParStatut(reparationsPeriode);
     const reparationsActivesNormalisees = reparationsActives.filter(reparation => (
       STATUTS_REPARATION_ACTIFS.includes(normaliserStatutReparation(reparation.statut))
     ));
@@ -146,12 +149,15 @@ router.get('/stats', requireRole('admin'), async (req, res) => {
       },
       produits: {
         total: produits.length,
-        disponibles: produitsDisponibles.length,
+        disponibles: stockPeriode.disponibles,
         vendus: nombreProduitsVendus,
         vendusMois: produitsVendusMois,
-        pourPieces: produitsPourPieces.length,
-        sansImei: produits.filter(produit => !produit.imei).length,
-        sansPrixVente: produits.filter(produit => !Number(produit.prixvente)).length
+        pourPieces: stockPeriode.pourPieces,
+        sansImei: stockPeriode.produitsAjoutesPeriode.filter(produit => !produit.imei).length,
+        sansPrixVente: stockPeriode.produitsAjoutesPeriode.filter(produit => !Number(produit.prixvente)).length,
+        ventesPieces: stockPeriode.ventesPieces,
+        totalVentesPieces: stockPeriode.totalVentesPieces,
+        totalVentesNormales: stockPeriode.totalVentesNormales
       },
       reparations: {
         recues: repartitionsReparations.recu || 0,
@@ -209,20 +215,20 @@ router.get('/stats', requireRole('admin'), async (req, res) => {
       graphiques: {
         ventesParMois,
         reparationsProfitParMois,
-        reparationsParStatut: Object.entries(repartitionsReparations).map(([statut, valeur]) => ({
+        reparationsParStatut: Object.entries(repartitionsReparationsPeriode).map(([statut, valeur]) => ({
           label: libelleStatutReparation(statut),
           valeur
         })),
         facturesParStatut: [
-          { label: 'Emises', valeur: factures.filter(facture => facture.statut === 'emise').length },
-          { label: 'Envoyees', valeur: factures.filter(facture => facture.statut === 'envoyee').length },
-          { label: 'Payees', valeur: facturesPayees.length },
-          { label: 'Annulees', valeur: factures.filter(facture => facture.statut === 'annulee').length }
+          { label: 'Emises', valeur: facturesPeriode.filter(facture => facture.statut === 'emise').length },
+          { label: 'Envoyees', valeur: facturesPeriode.filter(facture => facture.statut === 'envoyee').length },
+          { label: 'Payees', valeur: facturesPayeesPeriode.length },
+          { label: 'Annulees', valeur: facturesPeriode.filter(facture => facture.statut === 'annulee').length }
         ],
         stockParStatut: [
-          { label: 'Disponible', valeur: produitsDisponibles.length },
-          { label: 'Vendu', valeur: nombreProduitsVendus },
-          { label: 'Pour pieces', valeur: produitsPourPieces.length }
+          { label: 'Disponible', valeur: stockPeriode.disponibles },
+          { label: 'Vendu', valeur: stockPeriode.vendus },
+          { label: 'Pour pieces', valeur: stockPeriode.pourPieces }
         ]
       }
     });
@@ -247,16 +253,20 @@ function montant(valeur) {
 
 function lirePeriode(query) {
   const maintenant = new Date();
-  const type = query.periode === 'annee' ? 'annee' : 'mois';
+  const type = ['mois', 'annee', 'global'].includes(query.periode) ? query.periode : 'mois';
   const mois = entierDansIntervalle(query.mois, 1, 12) || maintenant.getMonth() + 1;
   const annee = entierDansIntervalle(query.annee, 2000, 2100) || maintenant.getFullYear();
   const dateReference = new Date(annee, mois - 1, 1);
-  const debutPeriode = type === 'annee'
-    ? new Date(annee, 0, 1, 0, 0, 0, 0)
-    : new Date(annee, mois - 1, 1, 0, 0, 0, 0);
-  const finPeriode = type === 'annee'
-    ? new Date(annee + 1, 0, 1, 0, 0, 0, 0)
-    : new Date(annee, mois, 1, 0, 0, 0, 0);
+  const debutPeriode = type === 'global'
+    ? new Date(0)
+    : type === 'annee'
+      ? new Date(annee, 0, 1, 0, 0, 0, 0)
+      : new Date(annee, mois - 1, 1, 0, 0, 0, 0);
+  const finPeriode = type === 'global'
+    ? new Date(8640000000000000)
+    : type === 'annee'
+      ? new Date(annee + 1, 0, 1, 0, 0, 0, 0)
+      : new Date(annee, mois, 1, 0, 0, 0, 0);
 
   return {
     type,
@@ -265,8 +275,10 @@ function lirePeriode(query) {
     dateReference,
     debutPeriode,
     finPeriode,
-    cle: type === 'annee' ? String(annee) : cleMois(dateReference),
-    label: type === 'annee'
+    cle: type === 'global' ? 'global' : type === 'annee' ? String(annee) : cleMois(dateReference),
+    label: type === 'global'
+      ? 'Global'
+      : type === 'annee'
       ? String(annee)
       : dateReference.toLocaleDateString('fr-CA', { month: 'long', year: 'numeric' })
   };
@@ -341,10 +353,59 @@ function compterProduitsVendusDansVentes(ventes) {
   ), 0), 0);
 }
 
+function calculerStockPeriode(produits, ventesPeriode, produitsVendusLegacyPeriode, debut, fin) {
+  const produitsExistantsFinPeriode = produits.filter(produit => produitExisteAvantFinPeriode(produit, fin));
+  const produitsDisponiblesFinPeriode = produitsExistantsFinPeriode.filter(produit => (
+    normaliserTexte(produit.disponibilite) === 'disponible'
+    && !produitVenduAvantFinPeriode(produit, fin)
+  ));
+  const produitsPourPiecesFinPeriode = produitsExistantsFinPeriode.filter(produit => (
+    normaliserTexte(produit.disponibilite).includes('piece')
+  ));
+  const ventesProduits = compterProduitsVendusDansVentes(ventesPeriode) + produitsVendusLegacyPeriode.length;
+  const lignesPieces = lignesPiecesVentes(ventesPeriode);
+  const lignesNormales = lignesProduitsVentes(ventesPeriode);
+
+  return {
+    produitsAjoutesPeriode: produitsExistantsFinPeriode,
+    disponibles: produitsDisponiblesFinPeriode.length,
+    vendus: ventesProduits,
+    pourPieces: produitsPourPiecesFinPeriode.length,
+    ventesPieces: somme(lignesPieces.map(item => montant(item.quantite) || 1)),
+    totalVentesPieces: somme(lignesPieces.map(totalLigneVente)),
+    totalVentesNormales: somme(lignesNormales.map(totalLigneVente)) + somme(produitsVendusLegacyPeriode.map(produit => produit.prixvente))
+  };
+}
+
+function produitExisteAvantFinPeriode(produit, fin) {
+  const dateAjout = dateReferenceAjoutProduit(produit);
+  return Boolean(dateAjout && new Date(dateAjout) < fin);
+}
+
+function produitVenduAvantFinPeriode(produit, fin) {
+  const dateVente = dateReferenceVenteProduit(produit);
+  return Boolean(dateVente && new Date(dateVente) < fin && normaliserTexte(produit.disponibilite) === 'vendu');
+}
+
 function lignesProduitsVente(vente) {
   return Array.isArray(vente.items)
     ? vente.items.filter(item => item.type === 'produit')
     : [];
+}
+
+function lignesPiecesVentes(ventes) {
+  return ventes.flatMap(vente => Array.isArray(vente.items)
+    ? vente.items.filter(item => item.type === 'accessoire')
+    : []);
+}
+
+function lignesProduitsVentes(ventes) {
+  return ventes.flatMap(lignesProduitsVente);
+}
+
+function totalLigneVente(item) {
+  if (item.totalLigne !== undefined) return item.totalLigne;
+  return montant(item.quantite || 1) * montant(item.prixUnitaire);
 }
 
 function chiffreAffairesVente(vente) {
@@ -467,6 +528,14 @@ function dateReferenceVenteProduit(produit) {
   ]);
 }
 
+function dateReferenceAjoutProduit(produit) {
+  return premiereDateValide([
+    produit.dateachat,
+    produit.dateCreation,
+    produit.createdAt
+  ]);
+}
+
 function dateReferenceSav(retour) {
   return premiereDateValide([
     retour.returnDate,
@@ -481,6 +550,10 @@ function dateReferenceFacture(facture) {
   return premiereDateValide([facture.datePaiement, facture.dateEmission, facture.date]);
 }
 
+function dateReferencePeriodeFacture(facture) {
+  return premiereDateValide([facture.date, facture.dateEmission, facture.createdAt]);
+}
+
 function dateReferenceStatutReparation(reparation) {
   const statut = normaliserStatutReparation(reparation.statut);
   return premiereDateValide([
@@ -488,6 +561,21 @@ function dateReferenceStatutReparation(reparation) {
     derniereDateHistoriqueReparation(reparation, [statut]),
     reparation.date
   ]);
+}
+
+function dateReferenceCreationReparation(reparation) {
+  return premiereDateValide([reparation.createdAt, reparation.date]);
+}
+
+function reparationDansPeriode(reparation, debut, fin) {
+  const statut = normaliserStatutReparation(reparation.statut);
+  const dateCreation = dateReferenceCreationReparation(reparation);
+
+  if (STATUTS_REPARATION_ACTIFS.includes(statut)) {
+    return Boolean(dateCreation && new Date(dateCreation) < fin);
+  }
+
+  return estDansPeriode(dateReferenceStatutReparation(reparation), debut, fin);
 }
 
 function derniereDateHistoriqueReparation(reparation, statuts) {

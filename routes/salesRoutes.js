@@ -11,12 +11,14 @@ const Counter = require('../models/Counter');
 const { requirePermission } = require('../middleware/permissions');
 const { genererFactureVentePDF } = require('../utils/saleInvoiceGenerator');
 const { sendEmail } = require('../utils/emailSender');
+const { SALES_INVOICE_STORAGE_DIR, cheminDansStockageFactures, masquerCheminsFacture } = require('../utils/invoiceStorage');
+const { messageErreurPublique, reponseErreur } = require('../utils/apiError');
 
 const router = express.Router();
 
 const TAUX_TPS = 0.05;
 const TAUX_TVQ = 0.09975;
-const DOSSIER_FACTURES_VENTES = path.join(__dirname, '..', 'public', 'generated', 'sales-invoices');
+const DOSSIER_FACTURES_VENTES = SALES_INVOICE_STORAGE_DIR;
 
 router.get('/', requirePermission('sales', 'read'), async (req, res) => {
   try {
@@ -27,7 +29,7 @@ router.get('/', requirePermission('sales', 'read'), async (req, res) => {
       .sort({ dateVente: -1, numeroVente: -1 })
       .lean();
 
-    res.json(ventes);
+    res.json(masquerCheminsFacture(ventes));
   } catch (err) {
     console.error('Erreur liste ventes :', err);
     res.status(500).json({ erreur: 'Erreur serveur' });
@@ -44,7 +46,7 @@ router.get('/:id', requirePermission('sales', 'read'), async (req, res) => {
       .lean();
 
     if (!vente) return res.status(404).json({ erreur: 'Vente introuvable.' });
-    res.json(vente);
+    res.json(masquerCheminsFacture(vente));
   } catch (err) {
     console.error('Erreur detail vente :', err);
     res.status(500).json({ erreur: 'Erreur serveur' });
@@ -76,10 +78,10 @@ router.post('/', requirePermission('sales', 'create'), async (req, res) => {
     }
 
     const venteComplete = await lireVenteComplete(vente._id);
-    res.status(201).json({ message, vente: venteComplete });
+    res.status(201).json({ message, vente: masquerCheminsFacture(venteComplete) });
   } catch (err) {
     console.error('Erreur creation vente :', err);
-    res.status(err.statusCode || 400).json({ erreur: err.message || 'Erreur creation vente' });
+    reponseErreur(res, err, 400, 'Erreur creation vente');
   }
 });
 
@@ -98,10 +100,10 @@ router.put('/:id', requirePermission('sales', 'update'), async (req, res) => {
     vente.set(update);
     await vente.save();
 
-    res.json(await lireVenteComplete(vente._id));
+    res.json(masquerCheminsFacture(await lireVenteComplete(vente._id)));
   } catch (err) {
     console.error('Erreur modification vente :', err);
-    res.status(err.statusCode || 400).json({ erreur: err.message || 'Erreur modification vente' });
+    reponseErreur(res, err, 400, 'Erreur modification vente');
   }
 });
 
@@ -144,6 +146,10 @@ router.get('/:id/invoice', requirePermission('sales', 'read'), async (req, res) 
     if (!vente.factureGeneree || !vente.facturePdfPath) {
       return res.status(404).json({ erreur: 'Facture PDF non generee.' });
     }
+    if (!cheminDansStockageFactures(vente.facturePdfPath) || !await fichierExiste(vente.facturePdfPath)) {
+      await genererFacturePourVente(vente._id);
+      await vente.reload();
+    }
     res.download(vente.facturePdfPath, path.basename(vente.facturePdfPath));
   } catch (err) {
     console.error('Erreur telechargement facture vente :', err);
@@ -155,10 +161,10 @@ router.post('/:id/generate-invoice', requirePermission('sales', 'update'), async
   try {
     if (idInvalide(req.params.id)) return res.status(400).json({ erreur: 'ID vente invalide.' });
     const vente = await genererFacturePourVente(req.params.id);
-    res.json({ message: 'Facture generee.', vente });
+    res.json({ message: 'Facture generee.', vente: masquerCheminsFacture(vente) });
   } catch (err) {
     console.error('Erreur generation facture vente :', err);
-    res.status(err.statusCode || 500).json({ erreur: err.message || 'Erreur serveur' });
+    reponseErreur(res, err, 500, 'Erreur serveur');
   }
 });
 
@@ -172,11 +178,11 @@ router.post('/:id/send-invoice', requirePermission('sales', 'update'), async (re
     const vente = await lireVenteComplete(req.params.id);
     res.status(resultat.ok ? 200 : 502).json({
       message: resultat.ok ? 'Facture envoyee.' : 'Facture generee, mais envoi echoue.',
-      vente
+      vente: masquerCheminsFacture(vente)
     });
   } catch (err) {
     console.error('Erreur envoi facture vente :', err);
-    res.status(err.statusCode || 500).json({ erreur: err.message || 'Erreur serveur' });
+    reponseErreur(res, err, 500, 'Erreur serveur');
   }
 });
 
@@ -392,6 +398,9 @@ async function genererFacturePourVente(id) {
   const vente = await Sale.findById(id);
   if (!vente) throw erreurValidation('Vente introuvable.', 404);
 
+  vente.factureSupprimee = false;
+  vente.factureSupprimeeLe = undefined;
+  vente.factureSupprimeePar = undefined;
   vente.factureGeneree = true;
   vente.factureDate = vente.factureDate || new Date();
   await vente.save();
@@ -406,6 +415,9 @@ async function genererFacturePourVente(id) {
   await fs.writeFile(cheminPdf, pdfBuffer);
 
   venteComplete.facturePdfPath = cheminPdf;
+  venteComplete.factureSupprimee = false;
+  venteComplete.factureSupprimeeLe = undefined;
+  venteComplete.factureSupprimeePar = undefined;
   venteComplete.factureGeneree = true;
   venteComplete.factureDate = venteComplete.factureDate || new Date();
   await venteComplete.save();
@@ -417,7 +429,14 @@ async function genererFacturePourVente(id) {
 async function envoyerFactureVente(id, email) {
   const vente = await Sale.findById(id);
   if (!vente) throw erreurValidation('Vente introuvable.', 404);
-  if (!vente.factureGeneree || !vente.facturePdfPath) await genererFacturePourVente(id);
+  if (
+    !vente.factureGeneree
+    || !vente.facturePdfPath
+    || !cheminDansStockageFactures(vente.facturePdfPath)
+    || !await fichierExiste(vente.facturePdfPath)
+  ) {
+    await genererFacturePourVente(id);
+  }
 
   const venteComplete = await Sale.findById(id).populate('client', 'nom prenom email telephone');
   const emailFinal = String(email || venteComplete.emailFacture || (venteComplete.client && venteComplete.client.email) || '').trim();
@@ -446,7 +465,7 @@ async function envoyerFactureVente(id, email) {
   } catch (err) {
     venteComplete.emailFacture = emailFinal;
     venteComplete.factureEnvoyee = false;
-    venteComplete.erreurEnvoiFacture = err.message || 'Erreur envoi facture';
+    venteComplete.erreurEnvoiFacture = messageErreurPublique(err, 'Erreur envoi facture');
     await venteComplete.save();
     await synchroniserFactureVente(venteComplete);
     return { ok: false, erreur: venteComplete.erreurEnvoiFacture };
@@ -457,7 +476,7 @@ async function synchroniserFactureVente(venteDocument) {
   const vente = venteDocument && typeof venteDocument.toObject === 'function'
     ? venteDocument
     : await Sale.findById(venteDocument && venteDocument._id || venteDocument);
-  if (!vente || !vente.factureGeneree) return null;
+  if (!vente || !vente.factureGeneree || vente.factureSupprimee) return null;
   await assurerNumeroFactureVente(vente);
 
   const clientId = vente.client && vente.client._id ? vente.client._id : vente.client || null;
@@ -674,6 +693,15 @@ function erreurValidation(message, statusCode = 400) {
 
 function formatNumero(numero) {
   return numero ? `#${String(numero).padStart(4, '0')}` : '-';
+}
+
+async function fichierExiste(chemin) {
+  try {
+    await fs.access(chemin);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 module.exports = router;

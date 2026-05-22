@@ -667,10 +667,24 @@ tfoot td {
   font-size: 14px;
 }
 
+.table-action-danger {
+  background: #b91c1c;
+  border-color: #991b1b;
+  color: #ffffff;
+}
+
 .invoice-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.bulk-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0 14px;
 }
 
 .invoice-badge {

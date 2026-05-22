@@ -199,9 +199,9 @@ async function chargerReparations() {
     });
 
     tr.innerHTML = `
-      <td>${rep.description}</td>
+      <td>${echapperHtmlSav(rep.description)}</td>
       <td>${rep.prix.toFixed(2)} $</td>
-      <td>${rep.statut}</td>
+      <td>${echapperHtmlSav(rep.statut)}</td>
       <td>${new Date(rep.date).toLocaleDateString()}</td>
     `;
 

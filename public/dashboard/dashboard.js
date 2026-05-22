@@ -82,11 +82,13 @@ function initialiserFiltrePeriode() {
 
 function synchroniserFiltrePeriode() {
   const modeAnnee = elements.filtrePeriode.value === 'annee';
-  elements.filtreMois.disabled = modeAnnee;
-  elements.labelProduitsVendus.textContent = modeAnnee ? 'Produits vendus cette annee' : 'Produits vendus ce mois';
-  elements.labelCaPeriode.textContent = modeAnnee ? "CA de l'annee" : 'CA du mois';
-  elements.labelProfitPeriode.textContent = modeAnnee ? "Profit de l'annee" : 'Profit du mois';
-  elements.titreFinancePeriode.textContent = modeAnnee ? "Finance de l'annee" : 'Finance du mois';
+  const modeGlobal = elements.filtrePeriode.value === 'global';
+  elements.filtreMois.disabled = modeAnnee || modeGlobal;
+  elements.filtreAnnee.disabled = modeGlobal;
+  elements.labelProduitsVendus.textContent = modeGlobal ? 'Produits vendus' : modeAnnee ? 'Produits vendus cette annee' : 'Produits vendus ce mois';
+  elements.labelCaPeriode.textContent = modeGlobal ? 'CA global' : modeAnnee ? "CA de l'annee" : 'CA du mois';
+  elements.labelProfitPeriode.textContent = modeGlobal ? 'Profit global' : modeAnnee ? "Profit de l'annee" : 'Profit du mois';
+  elements.titreFinancePeriode.textContent = modeGlobal ? 'Finance globale' : modeAnnee ? "Finance de l'annee" : 'Finance du mois';
 }
 
 async function chargerDashboard() {
@@ -162,7 +164,10 @@ function afficherAlertesStock(produits) {
   const alertes = [
     `${produits.pourPieces || 0} produit(s) pour pieces`,
     `${produits.sansImei || 0} produit(s) sans numero de serie`,
-    `${produits.sansPrixVente || 0} produit(s) sans prix de vente`
+    `${produits.sansPrixVente || 0} produit(s) sans prix de vente`,
+    `${produits.ventesPieces || 0} vente(s) de pieces`,
+    `Ventes pieces: ${formatMontant(produits.totalVentesPieces)}`,
+    `Ventes normales: ${formatMontant(produits.totalVentesNormales)}`
   ];
 
   elements.stockAlertes.innerHTML = alertes

@@ -1,4 +1,5 @@
 factures/
+storage/invoices/
 node_modules/
 .env
 *.zip
