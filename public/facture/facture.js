@@ -281,7 +281,7 @@ function afficherFactures(tbody, factures) {
       <td class="invoice-actions">
         <button type="button" class="table-action" data-download="${facture._id}" data-taxes="${facture.inclureTaxes ? 'true' : 'false'}">PDF</button>
         <button type="button" class="table-action" data-email="${facture._id}">Email</button>
-        ${renderSourceAction(facture)}
+        ${renderDetailsAction(facture)}
         ${renderDeleteAction(facture)}
       </td>
     `;
@@ -298,6 +298,10 @@ function afficherFactures(tbody, factures) {
 
   tbody.querySelectorAll('[data-email]').forEach(button => {
     button.addEventListener('click', () => envoyerFactureEmail(button.dataset.email));
+  });
+
+  tbody.querySelectorAll('[data-details-facture]').forEach(button => {
+    button.addEventListener('click', () => ouvrirDetailsFacture(button.dataset.detailsFacture));
   });
 
   tbody.querySelectorAll('[data-delete-facture]').forEach(button => {
@@ -439,6 +443,10 @@ async function envoyerFactureEmail(factureId) {
 }
 
 function renderSource(facture) {
+  return echapperHtml(texteSourceFacture(facture));
+}
+
+function texteSourceFacture(facture) {
   if (facture.type === 'vente') {
     return `Vente ${formatNumeroFacture(facture.sale && facture.sale.numeroVente || '')}`;
   }
@@ -448,20 +456,14 @@ function renderSource(facture) {
     const libelle = premiere && typeof premiere === 'object'
       ? premiere.description || premiere.statut || premiere._id
       : premiere;
-    return `Reparation ${echapperHtml(libelle || '')}`;
+    return `Reparation ${libelle || ''}`;
   }
   const produit = facture.produit ? `${facture.produit.nom || ''} ${facture.produit.model || ''}`.trim() : '';
-  return echapperHtml(produit || '-');
+  return produit || '-';
 }
 
-function renderSourceAction(facture) {
-  if (facture.type === 'vente' && facture.sale && facture.sale._id) {
-    return `<a class="table-link-button" href="/ventes/vente.html?id=${facture.sale._id}">Source</a>`;
-  }
-  if (facture.type === 'reparation') {
-    return '<a class="table-link-button" href="/reparation/reparations.html">Source</a>';
-  }
-  return '';
+function renderDetailsAction(facture) {
+  return `<button type="button" class="table-action" data-details-facture="${facture._id}">Détails</button>`;
 }
 
 function renderDeleteAction(facture) {
@@ -489,12 +491,17 @@ function libelleTypeFacture(type) {
 
 function libelleStatutPaiement(facture) {
   const statut = facture.statutPaiement || facture.statut || '';
-  if (statut === 'paye' || statut === 'payee') return 'Paye';
-  if (statut === 'partiellement paye') return 'Partiellement paye';
-  if (statut === 'non paye') return 'Non paye';
+  if (statut === 'paye' || statut === 'payee') return 'Payé';
+  if (statut === 'partiellement paye') return 'Partiellement payé';
+  if (statut === 'non paye') return 'Non payé';
   if (statut === 'envoyee') return 'Envoyee';
   if (statut === 'annulee') return 'Annulee';
   return statut || '-';
+}
+
+function facturePayee(facture) {
+  const statut = facture && (facture.statutPaiement || facture.statut || '');
+  return statut === 'paye' || statut === 'payee';
 }
 
 function pdfFactureDisponible(facture) {
@@ -569,4 +576,243 @@ function echapperHtml(valeur) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+async function ouvrirDetailsFacture(factureId) {
+  const modal = document.getElementById('factureDetailModal');
+  const contenu = document.getElementById('factureDetailContent');
+  const titre = document.getElementById('factureDetailTitle');
+  const paidBtn = document.getElementById('factureDetailPaidBtn');
+  const pdfBtn = document.getElementById('factureDetailPdfBtn');
+  const emailBtn = document.getElementById('factureDetailEmailBtn');
+  if (!modal || !contenu || !titre || !paidBtn || !pdfBtn || !emailBtn) return;
+
+  const factureLocale = facturesCache.find(item => item._id === factureId) || {};
+  titre.textContent = `Facture ${formatNumeroFacture(factureLocale.numeroFacture)}`;
+  contenu.innerHTML = '<p>Chargement des détails...</p>';
+  ouvrirModalDetailsFacture();
+
+  try {
+    const response = await fetch(`/api/factures/${factureId}`);
+    const facture = response.ok ? await response.json() : null;
+    if (!response.ok || !facture) throw new Error('Impossible de charger les détails de la facture.');
+
+    titre.textContent = `Facture ${formatNumeroFacture(facture.numeroFacture)}`;
+    contenu.innerHTML = renderDetailsFacture(facture);
+
+    configurerBoutonPaiementFacture(paidBtn, facture);
+    pdfBtn.onclick = () => telechargerFacture(facture._id, Boolean(facture.inclureTaxes))
+      .catch(err => alert(err.message || 'Impossible de telecharger la facture.'));
+    emailBtn.onclick = () => envoyerFactureEmail(facture._id);
+  } catch (err) {
+    contenu.innerHTML = `<p>${echapperHtml(err.message || 'Erreur lors du chargement des détails.')}</p>`;
+  }
+}
+
+function configurerBoutonPaiementFacture(button, facture) {
+  const dejaPayee = facturePayee(facture);
+  button.disabled = dejaPayee;
+  button.style.display = dejaPayee ? 'none' : 'inline-flex';
+  button.onclick = dejaPayee ? null : () => marquerFacturePayee(facture._id);
+}
+
+async function marquerFacturePayee(factureId) {
+  if (!confirm('Confirmer que cette facture a été payée ?')) return;
+
+  const response = await fetch(`/api/factures/${factureId}/statut`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ statut: 'payee' })
+  });
+  const facture = await response.json().catch(() => null);
+
+  if (!response.ok || !facture) {
+    alert(facture && (facture.error || facture.erreur) || 'Impossible de marquer la facture comme payée.');
+    return;
+  }
+
+  mettreAJourFactureCache(facture);
+  afficherFacturesFiltrees(document.querySelector('#facturesTable tbody'));
+  document.getElementById('factureDetailContent').innerHTML = renderDetailsFacture(facture);
+  configurerBoutonPaiementFacture(document.getElementById('factureDetailPaidBtn'), facture);
+}
+
+function mettreAJourFactureCache(facture) {
+  const index = facturesCache.findIndex(item => item._id === facture._id);
+  if (index >= 0) facturesCache[index] = { ...facturesCache[index], ...facture };
+}
+
+function ouvrirModalDetailsFacture() {
+  const modal = document.getElementById('factureDetailModal');
+  if (!modal) return;
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('modal-open');
+}
+
+function fermerModalDetailsFacture() {
+  const modal = document.getElementById('factureDetailModal');
+  if (!modal) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
+}
+
+document.addEventListener('click', event => {
+  if (event.target && event.target.matches('[data-close-facture-detail]')) {
+    fermerModalDetailsFacture();
+  }
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') fermerModalDetailsFacture();
+});
+
+function renderDetailsFacture(facture) {
+  const client = facture.client || {};
+  const emailEnvoye = Boolean(facture.emailEnvoye || facture.envoyeeParEmail);
+  const pdfDisponible = pdfFactureDisponible(facture);
+  const items = lignesFacture(facture);
+  const source = texteSourceFacture(facture);
+  const notes = facture.notes || facture.sale && facture.sale.notes || notesReparations(facture) || '';
+
+  return `
+    <div class="invoice-detail-grid">
+      ${renderDetailSection('Informations générales', [
+        ['Numéro de facture', formatNumeroFacture(facture.numeroFacture)],
+        ['Date de la facture', formatDate(facture.date || facture.dateEmission)],
+        ['Type de facture', libelleTypeFacture(facture.type)],
+        ['Source', source]
+      ])}
+      ${renderDetailSection('Client', [
+        ['Nom', nomClientFacture(facture)],
+        ['Telephone', client.telephone || '-'],
+        ['Email', client.email || facture.emailDestinataire || '-']
+      ])}
+      <section class="invoice-detail-section invoice-detail-wide">
+        <h3>Détails des articles/services</h3>
+        ${renderLignesFacture(items)}
+      </section>
+      ${renderDetailSection('Paiement et taxes', [
+        ['Sous-total', formatMontant(facture.totalHT || sousTotalItems(items))],
+        ['TPS', formatMontant(facture.tps || facture.montantTPS || 0)],
+        ['TVQ', formatMontant(facture.tvq || facture.montantTVQ || 0)],
+        ['Total', formatMontant(facture.totalTTC || facture.totalHT || 0)],
+        ['Mode de paiement', libelleModePaiementFacture(facture.modePaiement)]
+      ])}
+      ${renderDetailSection('Statuts', [
+        ['Paiement', libelleStatutPaiement(facture)],
+        ['Facture', statutFactureEffectif(facture) === 'annulee' ? 'Annulée' : 'Active'],
+        ['Email', emailEnvoye ? 'Envoyé' : 'Non envoyé'],
+        ['PDF', pdfDisponible ? 'Disponible' : 'Non disponible']
+      ])}
+      ${notes ? `<section class="invoice-detail-section invoice-detail-wide"><h3>Notes</h3><p>${echapperHtml(notes)}</p></section>` : ''}
+    </div>
+  `;
+}
+
+function renderDetailSection(titre, lignes) {
+  return `
+    <section class="invoice-detail-section">
+      <h3>${echapperHtml(titre)}</h3>
+      <dl>
+        ${lignes.map(([label, valeur]) => `
+          <div>
+            <dt>${echapperHtml(label)}</dt>
+            <dd>${valeurHtml(valeur)}</dd>
+          </div>
+        `).join('')}
+      </dl>
+    </section>
+  `;
+}
+
+function renderLignesFacture(items) {
+  if (!items.length) return '<p>Aucun article ou service détaillé.</p>';
+
+  return `
+    <div class="invoice-detail-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Produit ou service</th>
+            <th>Quantité</th>
+            <th>Prix unitaire</th>
+            <th>Sous-total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(item => `
+            <tr>
+              <td>${echapperHtml(item.description || '-')}</td>
+              <td>${echapperHtml(item.quantite || 1)}</td>
+              <td>${formatMontant(item.prixUnitaire || 0)}</td>
+              <td>${formatMontant(item.totalLigne || 0)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function lignesFacture(facture) {
+  if (facture.sale && Array.isArray(facture.sale.items) && facture.sale.items.length) {
+    return facture.sale.items.map(item => ({
+      description: item.description,
+      quantite: item.quantite || 1,
+      prixUnitaire: item.prixUnitaire || 0,
+      totalLigne: item.totalLigne || (Number(item.quantite || 1) * Number(item.prixUnitaire || 0))
+    }));
+  }
+
+  if (Array.isArray(facture.reparations) && facture.reparations.length) {
+    return facture.reparations.map(reparation => ({
+      description: reparation.description || reparation.statut || 'Reparation',
+      quantite: 1,
+      prixUnitaire: reparation.prix || 0,
+      totalLigne: reparation.prix || 0
+    }));
+  }
+
+  if (facture.produit) {
+    const description = `${facture.produit.nom || ''} ${facture.produit.model || ''}`.trim();
+    return [{
+      description: description || 'Produit',
+      quantite: 1,
+      prixUnitaire: facture.totalHT || facture.totalTTC || 0,
+      totalLigne: facture.totalHT || facture.totalTTC || 0
+    }];
+  }
+
+  return [];
+}
+
+function sousTotalItems(items) {
+  return items.reduce((total, item) => total + Number(item.totalLigne || 0), 0);
+}
+
+function notesReparations(facture) {
+  if (!Array.isArray(facture.reparations)) return '';
+  return facture.reparations
+    .map(reparation => reparation && reparation.notes)
+    .filter(Boolean)
+    .join('\n');
+}
+
+function libelleModePaiementFacture(valeur) {
+  if (!valeur) return '-';
+  const libelles = {
+    comptant: 'Comptant',
+    interac: 'Interac',
+    virement: 'Virement',
+    carte: 'Carte',
+    autre: 'Autre'
+  };
+  return libelles[valeur] || valeur;
+}
+
+function valeurHtml(valeur) {
+  if (valeur === null || valeur === undefined || valeur === '') return '-';
+  return echapperHtml(valeur);
 }

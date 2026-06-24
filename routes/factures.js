@@ -175,6 +175,7 @@ router.put('/:id/statut', requireRole('admin'), async (req, res) => {
 
     const updateData = { statut };
     if (statut === 'payee') {
+      updateData.statutPaiement = 'paye';
       updateData.datePaiement = new Date();
       if (modePaiement) updateData.modePaiement = modePaiement;
     }

@@ -170,6 +170,30 @@
     </div>
   </main>
 
+  <div class="invoice-detail-modal" id="factureDetailModal" aria-hidden="true">
+    <div class="invoice-detail-backdrop" data-close-facture-detail></div>
+    <section class="invoice-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="factureDetailTitle">
+      <div class="invoice-detail-header">
+        <div>
+          <p class="section-subtitle">Détails de la facture</p>
+          <h2 id="factureDetailTitle">Facture</h2>
+        </div>
+        <button type="button" class="table-action" data-close-facture-detail>Fermer</button>
+      </div>
+
+      <div id="factureDetailContent" class="invoice-detail-content">
+        <p>Sélectionnez une facture pour consulter les détails.</p>
+      </div>
+
+      <div class="invoice-detail-footer">
+        <button type="button" class="table-action" id="factureDetailPaidBtn">Payé</button>
+        <button type="button" class="table-action" id="factureDetailPdfBtn">Télécharger PDF</button>
+        <button type="button" class="table-action" id="factureDetailEmailBtn">Envoyer par email</button>
+        <button type="button" class="table-action" data-close-facture-detail>Fermer</button>
+      </div>
+    </section>
+  </div>
+
   <script src="facture.js"></script>
   <script src="../sidebar.js"></script>
   <script src="../scrollTop.js"></script>
