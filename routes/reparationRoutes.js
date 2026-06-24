@@ -13,6 +13,7 @@ const {
   calculerSlaReparation
 } = require('../utils/reparationWorkflow');
 const { requirePermission } = require('../middleware/permissions');
+const { journaliser } = require('../utils/auditLog');
 
 function idInvalide(id) {
   return !mongoose.Types.ObjectId.isValid(id);
@@ -107,6 +108,13 @@ router.post('/reparation', requirePermission('reparations', 'create'), async (re
     const reparation = await creerReparationDepuisBody(req.body, req.utilisateur);
     await reparation.save();
     await Produit.findByIdAndUpdate(reparation.produit, { datemodification: new Date() });
+    await journaliser(req, {
+      action: 'reparation.creee',
+      entity: 'reparation',
+      entityId: reparation._id,
+      entityLabel: reparation.description,
+      details: { statut: reparation.statut, prix: reparation.prix }
+    });
     res.status(201).json(reparation);
   } catch (err) {
     repondreErreurCreation(res, err);
@@ -173,6 +181,13 @@ router.put('/reparations/:id', requirePermission('reparations', 'update'), async
     if (reparation.produit) {
       await Produit.findByIdAndUpdate(reparation.produit, { datemodification: new Date() });
     }
+    await journaliser(req, {
+      action: 'reparation.modifiee',
+      entity: 'reparation',
+      entityId: reparation._id,
+      entityLabel: reparation.description,
+      details: { statut: reparation.statut }
+    });
 
     res.status(200).json({ message: 'Reparation mise a jour avec succes', reparation });
   } catch (err) {
@@ -203,6 +218,12 @@ router.delete('/reparations/:id', requirePermission('reparations', 'delete'), as
     if (reparation.produit) {
       await Produit.findByIdAndUpdate(reparation.produit, { datemodification: new Date() });
     }
+    await journaliser(req, {
+      action: 'reparation.supprimee',
+      entity: 'reparation',
+      entityId: reparation._id,
+      entityLabel: reparation.description
+    });
 
     res.json({ message: 'Reparation supprimee' });
   } catch (err) {
@@ -215,6 +236,13 @@ router.post('/', requirePermission('reparations', 'create'), async (req, res) =>
     const reparation = await creerReparationDepuisBody(req.body, req.utilisateur);
     await reparation.save();
     await Produit.findByIdAndUpdate(reparation.produit, { datemodification: new Date() });
+    await journaliser(req, {
+      action: 'reparation.creee',
+      entity: 'reparation',
+      entityId: reparation._id,
+      entityLabel: reparation.description,
+      details: { statut: reparation.statut, prix: reparation.prix }
+    });
     res.status(201).json(reparation);
   } catch (err) {
     repondreErreurCreation(res, err);

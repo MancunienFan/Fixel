@@ -24,6 +24,9 @@ const elements = {
   profitVentesMois: document.getElementById('profitVentesMois'),
   profitReparationsMois: document.getElementById('profitReparationsMois'),
   facturesImpayeesMontant: document.getElementById('facturesImpayeesMontant'),
+  taxesTps: document.getElementById('taxesTps'),
+  taxesTvq: document.getElementById('taxesTvq'),
+  taxesTotal: document.getElementById('taxesTotal'),
   stockAlertes: document.getElementById('stockAlertes'),
   slaAlertes: document.getElementById('slaAlertes'),
   reparationsBody: document.getElementById('reparationsDashboardBody'),
@@ -112,6 +115,7 @@ async function chargerDashboard() {
     afficherGraphiques(data.graphiques || {});
     afficherReparations(data.reparations.actives || []);
     afficherFactures(data.factures.dernieres || []);
+    await chargerTaxes(params);
   } catch (err) {
     console.error('Erreur dashboard :', err);
     elements.reparationsBody.innerHTML = '<tr><td colspan="6">Erreur lors du chargement.</td></tr>';
@@ -120,6 +124,16 @@ async function chargerDashboard() {
     elements.btnRefresh.disabled = false;
     elements.btnRefresh.textContent = 'Actualiser';
   }
+}
+
+async function chargerTaxes(params) {
+  const response = await fetch(`/api/dashboard/taxes?${params.toString()}`);
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Erreur lors du chargement des taxes');
+
+  elements.taxesTps.textContent = formatMontant(data.total && data.total.tps);
+  elements.taxesTvq.textContent = formatMontant(data.total && data.total.tvq);
+  elements.taxesTotal.textContent = formatMontant(data.total && data.total.taxes);
 }
 
 function afficherIndicateurs(data) {

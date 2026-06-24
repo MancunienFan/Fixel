@@ -693,20 +693,55 @@ function renderDetailsFacture(facture) {
         <h3>Détails des articles/services</h3>
         ${renderLignesFacture(items)}
       </section>
-      ${renderDetailSection('Paiement et taxes', [
-        ['Sous-total', formatMontant(facture.totalHT || sousTotalItems(items))],
-        ['TPS', formatMontant(facture.tps || facture.montantTPS || 0)],
-        ['TVQ', formatMontant(facture.tvq || facture.montantTVQ || 0)],
-        ['Total', formatMontant(facture.totalTTC || facture.totalHT || 0)],
-        ['Mode de paiement', libelleModePaiementFacture(facture.modePaiement)]
-      ])}
-      ${renderDetailSection('Statuts', [
-        ['Paiement', libelleStatutPaiement(facture)],
-        ['Facture', statutFactureEffectif(facture) === 'annulee' ? 'Annulée' : 'Active'],
-        ['Email', emailEnvoye ? 'Envoyé' : 'Non envoyé'],
-        ['PDF', pdfDisponible ? 'Disponible' : 'Non disponible']
-      ])}
+      <div class="invoice-detail-row invoice-detail-wide">
+        ${renderDetailSection('Paiement et taxes', [
+          ['Sous-total', formatMontant(facture.totalHT || sousTotalItems(items))],
+          ['TPS', formatMontant(facture.tps || facture.montantTPS || 0)],
+          ['TVQ', formatMontant(facture.tvq || facture.montantTVQ || 0)],
+          ['Total', formatMontant(facture.totalTTC || facture.totalHT || 0)],
+          ['Mode de paiement', libelleModePaiementFacture(facture.modePaiement)]
+        ])}
+        ${renderDetailSection('Statuts', [
+          ['Paiement', libelleStatutPaiement(facture)],
+          ['Facture', statutFactureEffectif(facture) === 'annulee' ? 'Annulée' : 'Active'],
+          ['Email', emailEnvoye ? 'Envoyé' : 'Non envoyé'],
+          ['PDF', pdfDisponible ? 'Disponible' : 'Non disponible']
+        ])}
+      </div>
+      <section class="invoice-detail-section invoice-detail-wide">
+        <h3>Historique des paiements</h3>
+        ${renderPaiementsFacture(facture.paiements || [])}
+      </section>
       ${notes ? `<section class="invoice-detail-section invoice-detail-wide"><h3>Notes</h3><p>${echapperHtml(notes)}</p></section>` : ''}
+    </div>
+  `;
+}
+
+function renderPaiementsFacture(paiements) {
+  if (!paiements.length) return '<p>Aucun paiement enregistre.</p>';
+
+  return `
+    <div class="invoice-detail-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Montant</th>
+            <th>Mode</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${paiements.map(paiement => `
+            <tr>
+              <td>${formatDate(paiement.date)}</td>
+              <td>${formatMontant(paiement.montant)}</td>
+              <td>${echapperHtml(libelleModePaiementFacture(paiement.modePaiement))}</td>
+              <td>${echapperHtml(paiement.note || '-')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
     </div>
   `;
 }

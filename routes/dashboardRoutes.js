@@ -238,6 +238,69 @@ router.get('/stats', requireRole('admin'), async (req, res) => {
   }
 });
 
+router.get('/taxes', requireRole('admin'), async (req, res) => {
+  try {
+    const periode = lirePeriode(req.query);
+    const { debutPeriode, finPeriode } = periode;
+    const [ventes, factures] = await Promise.all([
+      Sale.find({
+        statut: { $ne: 'annulee' },
+        statutVente: { $ne: 'annulee' },
+        deletedAt: null,
+        annuleeLe: null,
+        dateVente: { $gte: debutPeriode, $lt: finPeriode }
+      }).lean(),
+      Facture.find({
+        statut: { $ne: 'annulee' },
+        type: { $ne: 'vente' },
+        date: { $gte: debutPeriode, $lt: finPeriode }
+      }).lean()
+    ]);
+
+    const ventesTaxables = ventes.filter(item => item.taxesActivees);
+    const facturesTaxables = factures.filter(item => item.inclureTaxes || item.taxesActivees || item.tps || item.tvq);
+    const totalVentes = somme(ventes.map(item => item.total));
+    const totalFactures = somme(factures.map(totalFacture));
+
+    res.json({
+      periode: {
+        type: periode.type,
+        mois: periode.mois,
+        annee: periode.annee,
+        label: periode.label
+      },
+      ventes: {
+        nombre: ventes.length,
+        taxables: ventesTaxables.length,
+        sousTotalTaxable: somme(ventesTaxables.map(item => item.sousTotalApresRabais || item.sousTotal)),
+        tps: somme(ventes.map(item => item.montantTPS)),
+        tvq: somme(ventes.map(item => item.montantTVQ)),
+        totalTaxes: somme(ventes.map(item => item.totalTaxes)),
+        total: totalVentes
+      },
+      factures: {
+        nombre: factures.length,
+        taxables: facturesTaxables.length,
+        sousTotalTaxable: somme(facturesTaxables.map(item => item.totalHT)),
+        tps: somme(factures.map(item => item.tps || item.montantTPS)),
+        tvq: somme(factures.map(item => item.tvq || item.montantTVQ)),
+        totalTaxes: somme(factures.map(item => montant(item.tps || item.montantTPS) + montant(item.tvq || item.montantTVQ))),
+        total: totalFactures
+      },
+      total: {
+        tps: somme(ventes.map(item => item.montantTPS)) + somme(factures.map(item => item.tps || item.montantTPS)),
+        tvq: somme(ventes.map(item => item.montantTVQ)) + somme(factures.map(item => item.tvq || item.montantTVQ)),
+        taxes: somme(ventes.map(item => item.totalTaxes))
+          + somme(factures.map(item => montant(item.tps || item.montantTPS) + montant(item.tvq || item.montantTVQ))),
+        revenus: totalVentes + totalFactures
+      }
+    });
+  } catch (err) {
+    console.error('Erreur rapport taxes :', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 function somme(valeurs) {
   return valeurs.reduce((total, valeur) => total + montant(valeur), 0);
 }

@@ -92,6 +92,16 @@ app.use('/api/dashboard', dashboardRoutes);
 const dataQualityRoutes = require('./routes/dataQualityRoutes');
 app.use('/api/data-quality', dataQualityRoutes);
 
+//Exports, sauvegardes et journal d'activite
+const exportRoutes = require('./routes/exportRoutes');
+app.use('/api/export', exportRoutes);
+
+const backupRoutes = require('./routes/backupRoutes');
+app.use('/api/backup', backupRoutes);
+
+const auditRoutes = require('./routes/auditRoutes');
+app.use('/api/audit', auditRoutes);
+
 
 
 

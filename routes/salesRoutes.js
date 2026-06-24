@@ -13,6 +13,7 @@ const { genererFactureVentePDF } = require('../utils/saleInvoiceGenerator');
 const { sendEmail } = require('../utils/emailSender');
 const { SALES_INVOICE_STORAGE_DIR, cheminDansStockageFactures, masquerCheminsFacture } = require('../utils/invoiceStorage');
 const { messageErreurPublique, reponseErreur } = require('../utils/apiError');
+const { journaliser } = require('../utils/auditLog');
 
 const router = express.Router();
 
@@ -78,6 +79,13 @@ router.post('/', requirePermission('sales', 'create'), async (req, res) => {
     }
 
     const venteComplete = await lireVenteComplete(vente._id);
+    await journaliser(req, {
+      action: 'vente.creee',
+      entity: 'vente',
+      entityId: vente._id,
+      entityLabel: formatNumero(vente.numeroVente),
+      details: { total: vente.total, paiement: vente.statutPaiement }
+    });
     res.status(201).json({ message, vente: masquerCheminsFacture(venteComplete) });
   } catch (err) {
     console.error('Erreur creation vente :', err);
@@ -99,6 +107,12 @@ router.put('/:id', requirePermission('sales', 'update'), async (req, res) => {
     const update = await construireUpdateVente(req.body, vente, req.utilisateur);
     vente.set(update);
     await vente.save();
+    await journaliser(req, {
+      action: 'vente.modifiee',
+      entity: 'vente',
+      entityId: vente._id,
+      entityLabel: formatNumero(vente.numeroVente)
+    });
 
     res.json(masquerCheminsFacture(await lireVenteComplete(vente._id)));
   } catch (err) {
@@ -129,6 +143,13 @@ router.delete('/:id', requirePermission('sales', 'delete'), async (req, res) => 
     vente.updatedBy = req.utilisateur && req.utilisateur.id;
     await vente.save();
     await marquerFactureVenteAnnulee(vente);
+    await journaliser(req, {
+      action: 'vente.annulee',
+      entity: 'vente',
+      entityId: vente._id,
+      entityLabel: formatNumero(vente.numeroVente),
+      details: { raison: vente.raisonAnnulation || '' }
+    });
 
     res.json({ success: true, message: 'Vente annulee avec succes' });
   } catch (err) {
@@ -176,6 +197,13 @@ router.post('/:id/send-invoice', requirePermission('sales', 'update'), async (re
 
     const resultat = await envoyerFactureVente(req.params.id, email);
     const vente = await lireVenteComplete(req.params.id);
+    await journaliser(req, {
+      action: 'vente.facture.email',
+      entity: 'vente',
+      entityId: vente && vente._id,
+      entityLabel: vente && formatNumero(vente.numeroVente),
+      details: { email, ok: resultat.ok }
+    });
     res.status(resultat.ok ? 200 : 502).json({
       message: resultat.ok ? 'Facture envoyee.' : 'Facture generee, mais envoi echoue.',
       vente: masquerCheminsFacture(vente)

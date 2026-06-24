@@ -14,6 +14,7 @@ const { sendEmail } = require('../utils/emailSender');
 const { genererFactureVentePDF } = require('../utils/saleInvoiceGenerator');
 const { SALES_INVOICE_STORAGE_DIR, cheminDansStockageFactures, masquerCheminsFacture } = require('../utils/invoiceStorage');
 const { messageErreurPublique } = require('../utils/apiError');
+const { journaliser } = require('../utils/auditLog');
 
 const Client = require('../models/clientModel');
 const Produit = require('../models/produitModel');
@@ -180,13 +181,29 @@ router.put('/:id/statut', requireRole('admin'), async (req, res) => {
       if (modePaiement) updateData.modePaiement = modePaiement;
     }
 
-    const facture = await Facture.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true }
-    );
-
+    const facture = await Facture.findById(req.params.id);
     if (!facture) return res.status(404).json({ error: 'Facture introuvable' });
+    const dejaPayee = facture.statut === 'payee' || facture.statutPaiement === 'paye';
+    facture.set(updateData);
+
+    if (statut === 'payee' && !dejaPayee) {
+      facture.paiements.push({
+        date: updateData.datePaiement,
+        montant: montant(req.body.montant || facture.totalTTC || facture.totalHT),
+        modePaiement: modePaiement || facture.modePaiement || '',
+        note: req.body.note || 'Paiement confirme',
+        utilisateur: req.utilisateur && req.utilisateur.id
+      });
+    }
+
+    await facture.save();
+    await journaliser(req, {
+      action: 'facture.statut',
+      entity: 'facture',
+      entityId: facture._id,
+      entityLabel: formatNumero(facture.numeroFacture),
+      details: { statut, modePaiement: modePaiement || facture.modePaiement || '' }
+    });
     res.json(masquerCheminsFacture(facture));
   } catch (err) {
     console.error('Erreur statut facture :', err);
@@ -282,6 +299,13 @@ router.post('/:id/send-email', requirePermission('factures', 'update'), async (r
     facture.emailEnvoyeLe = facture.dateEnvoiEmail;
     facture.statut = 'envoyee';
     await facture.save();
+    await journaliser(req, {
+      action: 'facture.email',
+      entity: 'facture',
+      entityId: facture._id,
+      entityLabel: formatNumero(facture.numeroFacture),
+      details: { email }
+    });
 
     res.json({ message: 'Facture envoyee.', facture: masquerCheminsFacture(facture) });
   } catch (err) {
@@ -363,6 +387,12 @@ router.delete('/:id', requirePermission('factures', 'delete'), async (req, res) 
 
     await preparerSuppressionFacture(facture, req.utilisateur);
     await Facture.findByIdAndDelete(facture._id);
+    await journaliser(req, {
+      action: 'facture.supprimee',
+      entity: 'facture',
+      entityId: facture._id,
+      entityLabel: formatNumero(facture.numeroFacture)
+    });
     res.json({ message: 'Facture supprimee.', id: String(facture._id) });
   } catch (err) {
     console.error('Erreur suppression facture :', err);

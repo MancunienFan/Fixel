@@ -64,6 +64,34 @@ const factureSchema = new mongoose.Schema({
     default: Date.now
   },
   datePaiement: Date,
+  paiements: [{
+    date: {
+      type: Date,
+      default: Date.now
+    },
+    montant: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
+    modePaiement: {
+      type: String,
+      trim: true,
+      maxlength: 80,
+      set: nettoyerTexte
+    },
+    note: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: '',
+      set: nettoyerTexte
+    },
+    utilisateur: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'utilisateur'
+    }
+  }],
   statut: {
     type: String,
     enum: ['emise', 'envoyee', 'payee', 'annulee'],

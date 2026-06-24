@@ -54,6 +54,24 @@
       </div>
     </section>
 
+    <section class="filters-panel" aria-label="Outils administrateur">
+      <label>Exports CSV
+        <select id="adminExportSelect">
+          <option value="clients">Clients</option>
+          <option value="produits">Produits</option>
+          <option value="reparations">Reparations</option>
+          <option value="factures">Factures</option>
+          <option value="ventes">Ventes</option>
+        </select>
+      </label>
+      <div class="filter-actions">
+        <button type="button" id="btnDownloadCsv">Telecharger CSV</button>
+      </div>
+      <div class="filter-actions">
+        <button type="button" id="btnBackupDownload">Sauvegarde JSON</button>
+      </div>
+    </section>
+
     <p class="table-summary">
       Problemes affiches : <strong id="visibleIssuesCount">0</strong>
     </p>
@@ -76,6 +94,34 @@
         </tbody>
       </table>
     </div>
+
+    <section class="sub-container">
+      <div class="section-header">
+        <div>
+          <h2>Journal d'activite</h2>
+          <p class="section-subtitle">Dernieres actions importantes effectuees dans Fixel.</p>
+        </div>
+        <button type="button" id="btnRefreshAuditLog">Actualiser</button>
+      </div>
+      <div class="table-container">
+        <table id="auditLogTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Action</th>
+              <th>Type</th>
+              <th>Element</th>
+              <th>Utilisateur</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="5">Chargement du journal...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </main>
 
   <script src="data-quality.js"></script>

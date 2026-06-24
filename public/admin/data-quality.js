@@ -20,17 +20,83 @@ const elements = {
   entityFilter: document.getElementById('entityFilter'),
   codeFilter: document.getElementById('codeFilter'),
   searchFilter: document.getElementById('searchFilter'),
-  tbody: document.querySelector('#dataQualityTable tbody')
+  adminExportSelect: document.getElementById('adminExportSelect'),
+  btnDownloadCsv: document.getElementById('btnDownloadCsv'),
+  btnBackupDownload: document.getElementById('btnBackupDownload'),
+  btnRefreshAuditLog: document.getElementById('btnRefreshAuditLog'),
+  tbody: document.querySelector('#dataQualityTable tbody'),
+  auditTbody: document.querySelector('#auditLogTable tbody')
 };
 
 document.addEventListener('DOMContentLoaded', () => {
   chargerRapport();
+  chargerJournalActivite();
   elements.btnRefresh.addEventListener('click', chargerRapport);
+  elements.btnRefreshAuditLog.addEventListener('click', chargerJournalActivite);
   elements.btnReset.addEventListener('click', reinitialiserFiltres);
+  elements.btnDownloadCsv.addEventListener('click', () => {
+    telechargerFichier(`/api/export/${elements.adminExportSelect.value}.csv`);
+  });
+  elements.btnBackupDownload.addEventListener('click', () => {
+    telechargerFichier('/api/backup/download');
+  });
   elements.entityFilter.addEventListener('change', afficherIssues);
   elements.codeFilter.addEventListener('change', afficherIssues);
   elements.searchFilter.addEventListener('input', afficherIssues);
 });
+
+async function chargerJournalActivite() {
+  elements.auditTbody.innerHTML = '<tr><td colspan="5">Chargement du journal...</td></tr>';
+
+  try {
+    const response = await fetch('/api/audit?limit=50');
+    const logs = await response.json();
+    if (!response.ok) throw new Error(logs.erreur || 'Journal indisponible.');
+
+    if (!logs.length) {
+      elements.auditTbody.innerHTML = '<tr><td colspan="5">Aucune action journalisee.</td></tr>';
+      return;
+    }
+
+    elements.auditTbody.innerHTML = logs.map(log => `
+      <tr>
+        <td>${echapperHtml(formatHeure(log.createdAt))}</td>
+        <td><code>${echapperHtml(log.action)}</code></td>
+        <td>${echapperHtml(log.entity)}</td>
+        <td>${echapperHtml(log.entityLabel || log.entityId || '-')}</td>
+        <td>${echapperHtml(formatUtilisateur(log.utilisateur, log.role))}</td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    elements.auditTbody.innerHTML = `<tr><td colspan="5">${echapperHtml(err.message)}</td></tr>`;
+  }
+}
+
+async function telechargerFichier(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    alert(data.erreur || 'Telechargement impossible.');
+    return;
+  }
+
+  const blob = await response.blob();
+  const filename = nomFichierDepuisHeader(response.headers.get('Content-Disposition')) || 'fixel-export';
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = objectUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(objectUrl);
+}
+
+function nomFichierDepuisHeader(header) {
+  if (!header) return '';
+  const match = header.match(/filename="(.+)"/);
+  return match && match[1] || '';
+}
 
 async function chargerRapport() {
   elements.btnRefresh.disabled = true;
@@ -161,6 +227,13 @@ function formatHeure(valeur) {
   if (!valeur) return '-';
   const date = new Date(valeur);
   return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString('fr-CA');
+}
+
+function formatUtilisateur(utilisateur, role) {
+  if (utilisateur && (utilisateur.nom || utilisateur.email)) {
+    return [utilisateur.nom, utilisateur.email].filter(Boolean).join(' - ');
+  }
+  return role || '-';
 }
 
 function echapperHtml(valeur) {

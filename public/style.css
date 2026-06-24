@@ -749,6 +749,17 @@ body.modal-open {
   gap: 14px;
 }
 
+.invoice-detail-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+.invoice-detail-row .invoice-detail-section {
+  height: 100%;
+}
+
 .invoice-detail-section {
   padding: 16px;
   background: var(--surface-muted);
@@ -1593,6 +1604,7 @@ body.modal-open {
   .dashboard-summary,
   .dashboard-columns,
   .charts-grid,
+  .invoice-detail-row,
   .sales-form-grid,
   .sales-summary-grid {
     grid-template-columns: 1fr;
