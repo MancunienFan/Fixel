@@ -20,7 +20,7 @@ window.addEventListener("DOMContentLoaded", () => {
     </a>
     <a href="/reparation/reparations.html" class="sidebar-link" data-icon="🛠️">
       <span class="sidebar-link-icon">🛠️</span>
-      <span class="sidebar-link-text">Réparations</span>
+      <span class="sidebar-link-text">Réparations en cours</span>
     </a>
     <a href="/sav/sav.html" class="sidebar-link" data-icon="SAV">
       <span class="sidebar-link-icon">SAV</span>

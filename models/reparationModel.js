@@ -93,7 +93,7 @@ const ReparationSchema = new mongoose.Schema({
     maxlength: 2000,
     default: ''
   }
-});
+}, { timestamps: { createdAt: false, updatedAt: true } });
 
 ReparationSchema.index({ produit: 1, date: -1 });
 ReparationSchema.index({ client: 1, date: -1 });

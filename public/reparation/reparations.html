@@ -3,7 +3,8 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Réparations - FixEl</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Réparations en cours - FixEl</title>
   <link rel="stylesheet" href="../style.css">
   <script src="/auth.js"></script>
 </head>
@@ -14,7 +15,7 @@
   <main class="main-content container">
     <div class="section-header">
       <div>
-        <h1>Réparations</h1>
+        <h1>Réparations en cours</h1>
         <p class="section-subtitle">Liste, suivi et accès rapide aux dossiers de réparation.</p>
       </div>
       <button type="button" id="btnRefreshReparations">Actualiser</button>
@@ -23,6 +24,8 @@
     <section class="filters-panel" aria-label="Filtres des réparations">
       <label>Étape
         <select id="filtreStatutReparation">
+          <option value="en-cours">En cours</option>
+          <option value="terminees-ou-livrees">Terminées ou livrées</option>
           <option value="">Toutes</option>
           <option value="recu">Reçu</option>
           <option value="diagnostic">Diagnostic</option>
@@ -34,8 +37,8 @@
         </select>
       </label>
 
-      <label>Client
-        <input type="search" id="filtreClientReparation" placeholder="Nom ou prénom">
+      <label>Rechercher une réparation
+        <input type="search" id="rechercheReparation" placeholder="Client, modèle ou description">
       </label>
 
       <label>Mois
