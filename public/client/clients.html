@@ -2,11 +2,23 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FixEl - Clients</title>
   <link rel="stylesheet" href="../style.css"> <!-- si tu as une feuille CSS commune -->
   <script src="/auth.js"></script>
   <style>
-    
+    .client-list-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .client-list-controls label {
+      flex: 1 1 16rem;
+      max-width: 28rem;
+    }
   </style>
 </head>
 <body>
@@ -15,10 +27,17 @@
 <main class="main-content container">
   <h1>Liste des Clients</h1>
 
+  <div class="client-list-controls">
+    <button type="button" onclick="window.location.href='client.html'">➕ Ajouter un client</button>
+    <label for="client-search">
+      Rechercher un client
+      <input type="search" id="client-search" placeholder="Nom, prénom, téléphone ou courriel">
+    </label>
+  </div>
+
   <table>
     <thead>
-      <tr onclick="window.location.href='client.html?id=<%= client._id %>'">
-
+      <tr>
         <th>Nom</th>
         <th>Prénom</th>
         <th>Téléphone</th>
@@ -31,7 +50,6 @@
     </tbody>
   </table>
 
- <button onclick="window.location.href='client.html'">➕ Ajouter un client</button>
 </main>
   <script src="clients.js"></script>
   <script src="../sidebar.js"></script>
