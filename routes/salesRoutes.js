@@ -9,9 +9,10 @@ const Client = require('../models/clientModel');
 const Facture = require('../models/Facture');
 const Counter = require('../models/Counter');
 const { requirePermission } = require('../middleware/permissions');
-const { genererFactureVentePDF } = require('../utils/saleInvoiceGenerator');
+const { donneesFactureVentePDF, genererFactureVentePDF, genererPDFFactureVenteEmise } = require('../utils/saleInvoiceGenerator');
 const { sendEmail } = require('../utils/emailSender');
-const { SALES_INVOICE_STORAGE_DIR, cheminDansStockageFactures, masquerCheminsFacture } = require('../utils/invoiceStorage');
+const { SALES_INVOICE_STORAGE_DIR, RECONSTRUCTED_INVOICE_DIR, cheminDansStockageFactures, masquerCheminsFacture } = require('../utils/invoiceStorage');
+const { lirePDFOriginal, obtenirPDFTelechargeable, envoyerPDFTelechargeable } = require('../utils/invoiceDownload');
 const { messageErreurPublique, reponseErreur } = require('../utils/apiError');
 const { journaliser } = require('../utils/auditLog');
 
@@ -62,11 +63,13 @@ router.post('/', requirePermission('sales', 'create'), async (req, res) => {
       return res.status(400).json({ erreur: 'Courriel requis pour envoyer la facture.' });
     }
 
+    const emettreFacture = vente.factureGeneree || vente.envoyerFactureEmail;
+    vente.factureGeneree = false;
     await vente.save();
     await marquerProduitsVendus(vente);
 
     let message = 'Vente creee.';
-    if (vente.factureGeneree || vente.envoyerFactureEmail) {
+    if (emettreFacture) {
       await genererFacturePourVente(vente._id);
       message = 'Vente creee et facture generee.';
     }
@@ -105,8 +108,11 @@ router.put('/:id', requirePermission('sales', 'update'), async (req, res) => {
     }
 
     const update = await construireUpdateVente(req.body, vente, req.utilisateur);
+    const nouvelleEmission = update.factureGeneree && !vente.factureGeneree && !vente.factureNumero;
+    if (nouvelleEmission) update.factureGeneree = false;
     vente.set(update);
     await vente.save();
+    if (nouvelleEmission) await genererFacturePourVente(vente._id);
     await journaliser(req, {
       action: 'vente.modifiee',
       entity: 'vente',
@@ -162,16 +168,18 @@ router.get('/:id/invoice', requirePermission('sales', 'read'), async (req, res) 
   try {
     if (idInvalide(req.params.id)) return res.status(400).json({ erreur: 'ID vente invalide.' });
 
-    const vente = await Sale.findById(req.params.id);
+    const vente = await Sale.findById(req.params.id).lean();
     if (!vente) return res.status(404).json({ erreur: 'Vente introuvable.' });
-    if (!vente.factureGeneree || !vente.facturePdfPath) {
+    if (vente.factureSupprimee) {
       return res.status(404).json({ erreur: 'Facture PDF non generee.' });
     }
-    if (!cheminDansStockageFactures(vente.facturePdfPath) || !await fichierExiste(vente.facturePdfPath)) {
-      await genererFacturePourVente(vente._id);
-      await vente.reload();
+    const liens = [{ sale: vente._id }, { sourceModel: 'Sale', sourceId: vente._id }];
+    if (vente.factureId) liens.push({ _id: vente.factureId });
+    const facture = await Facture.findOne({ $or: liens }).lean();
+    if (!facture && !vente.factureGeneree && !vente.factureNumero) {
+      return res.status(404).json({ erreur: 'Facture PDF non generee.' });
     }
-    res.download(vente.facturePdfPath, path.basename(vente.facturePdfPath));
+    return envoyerPDFTelechargeable(res, await obtenirPDFTelechargeable(facture, vente));
   } catch (err) {
     console.error('Erreur telechargement facture vente :', err);
     res.status(500).json({ erreur: 'Erreur serveur' });
@@ -423,31 +431,36 @@ async function restaurerAccessoiresVendus(vente) {
 }
 
 async function genererFacturePourVente(id) {
-  const vente = await Sale.findById(id);
-  if (!vente) throw erreurValidation('Vente introuvable.', 404);
-
-  vente.factureSupprimee = false;
-  vente.factureSupprimeeLe = undefined;
-  vente.factureSupprimeePar = undefined;
-  vente.factureGeneree = true;
-  vente.factureDate = vente.factureDate || new Date();
-  await vente.save();
-  await assurerNumeroFactureVente(vente);
-
   const venteComplete = await Sale.findById(id)
-    .populate('client', 'nom prenom email telephone')
-    .populate('items.productId', 'nom model imei prixachat prixvente');
-  const { pdfBuffer, nomFichier } = await genererFactureVentePDF(venteComplete);
-  await fs.mkdir(DOSSIER_FACTURES_VENTES, { recursive: true });
-  const cheminPdf = path.join(DOSSIER_FACTURES_VENTES, nomFichier);
-  await fs.writeFile(cheminPdf, pdfBuffer);
+    .populate('client', 'nom prenom email telephone');
+  if (!venteComplete) throw erreurValidation('Vente introuvable.', 404);
 
-  venteComplete.facturePdfPath = cheminPdf;
+  let facture = await Facture.findOne({ sale: id }).lean();
+  const nouvelleEmission = !facture && !venteComplete.factureGeneree &&
+    !venteComplete.factureNumero && !venteComplete.facturePdfPath;
+  if (facture?.numeroFacture) venteComplete.factureNumero = facture.numeroFacture;
   venteComplete.factureSupprimee = false;
   venteComplete.factureSupprimeeLe = undefined;
   venteComplete.factureSupprimeePar = undefined;
   venteComplete.factureGeneree = true;
-  venteComplete.factureDate = venteComplete.factureDate || new Date();
+  venteComplete.factureDate = venteComplete.factureDate || facture?.dateEmission || new Date();
+
+  await assurerNumeroFactureVente(venteComplete, false);
+  if (nouvelleEmission) {
+    // La facture durable est enregistrée avant de marquer la vente et d'écrire le cache.
+    facture = await synchroniserFactureVente(venteComplete, donneesFactureVentePDF(venteComplete));
+  }
+  const donneesPDF = facture?.donneesPDF;
+  if (donneesPDF || !await lirePDFOriginal(venteComplete.facturePdfPath)) {
+    const { pdfBuffer, nomFichier } = donneesPDF
+      ? await genererPDFFactureVenteEmise(donneesPDF)
+      : await genererFactureVentePDF(venteComplete);
+    const dossier = donneesPDF ? DOSSIER_FACTURES_VENTES : RECONSTRUCTED_INVOICE_DIR;
+    await fs.mkdir(dossier, { recursive: true });
+    venteComplete.facturePdfPath = path.join(dossier, nomFichier);
+    await fs.writeFile(venteComplete.facturePdfPath, pdfBuffer);
+  }
+
   await venteComplete.save();
   await synchroniserFactureVente(venteComplete);
 
@@ -500,12 +513,12 @@ async function envoyerFactureVente(id, email) {
   }
 }
 
-async function synchroniserFactureVente(venteDocument) {
+async function synchroniserFactureVente(venteDocument, donneesPDF) {
   const vente = venteDocument && typeof venteDocument.toObject === 'function'
     ? venteDocument
     : await Sale.findById(venteDocument && venteDocument._id || venteDocument);
   if (!vente || !vente.factureGeneree || vente.factureSupprimee) return null;
-  await assurerNumeroFactureVente(vente);
+  if (!donneesPDF) await assurerNumeroFactureVente(vente);
 
   const clientId = vente.client && vente.client._id ? vente.client._id : vente.client || null;
   const clientNomAffiche = clientId
@@ -555,21 +568,24 @@ async function synchroniserFactureVente(venteDocument) {
   if (vente.factureNumero) donnees.numeroFacture = vente.factureNumero;
   if (vente.createdBy) donnees.createdBy = vente.createdBy;
 
+  const numeroFacture = donnees.numeroFacture;
+  if (donneesPDF) delete donnees.numeroFacture;
   const facture = await Facture.findOneAndUpdate(
     { sale: vente._id },
-    { $set: donnees },
+    donneesPDF ? { $set: donnees, $setOnInsert: { numeroFacture, donneesPDF } } : { $set: donnees },
     { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
   );
 
-  if (!vente.factureId || String(vente.factureId) !== String(facture._id)) {
+  if (String(vente.factureId) !== String(facture._id) || vente.factureNumero !== facture.numeroFacture) {
     vente.factureId = facture._id;
+    vente.factureNumero = facture.numeroFacture;
     await vente.save();
   }
 
   return facture;
 }
 
-async function assurerNumeroFactureVente(vente) {
+async function assurerNumeroFactureVente(vente, enregistrer = true) {
   let numero = vente.factureNumero;
   while (!numero || await numeroFactureDejaUtilise(numero, vente._id)) {
     const counter = await Counter.findByIdAndUpdate(
@@ -583,7 +599,7 @@ async function assurerNumeroFactureVente(vente) {
   if (vente.factureNumero !== numero) {
     vente.factureNumero = numero;
     vente.factureDate = vente.factureDate || new Date();
-    await vente.save();
+    if (enregistrer) await vente.save();
   }
   await Counter.updateOne({ _id: 'facture' }, { $max: { seq: numero } }, { upsert: true });
 }

@@ -329,11 +329,7 @@ function recalculer() {
 }
 
 async function telechargerFacture() {
-  let res = await fetch(`/api/sales/${venteId}/invoice`);
-  if (res.status === 404) {
-    const generation = await fetch(`/api/sales/${venteId}/generate-invoice`, { method: 'POST' });
-    if (generation.ok) res = await fetch(`/api/sales/${venteId}/invoice`);
-  }
+  const res = await fetch(`/api/sales/${venteId}/invoice`);
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     alert(data.erreur || 'Erreur PDF');
@@ -343,7 +339,8 @@ async function telechargerFacture() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `facture_vente_${venteId}.pdf`;
+  const suffixe = res.headers.get('X-Fixel-PDF') === 'reconstitution' ? '_reconstituee' : '';
+  a.download = `facture_vente_${venteId}${suffixe}.pdf`;
   document.body.appendChild(a);
   a.click();
   a.remove();

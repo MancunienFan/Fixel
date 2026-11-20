@@ -12,7 +12,8 @@ const { genererPDF } = require('../utils/pdfGenerator');
 const envoyerFactureParEmail = require('../utils/emailSender');
 const { sendEmail } = require('../utils/emailSender');
 const { genererFactureVentePDF } = require('../utils/saleInvoiceGenerator');
-const { SALES_INVOICE_STORAGE_DIR, cheminDansStockageFactures, masquerCheminsFacture } = require('../utils/invoiceStorage');
+const { RECONSTRUCTED_INVOICE_DIR, cheminDansStockageFactures, masquerCheminsFacture } = require('../utils/invoiceStorage');
+const { obtenirPDFTelechargeable, envoyerPDFTelechargeable } = require('../utils/invoiceDownload');
 const { messageErreurPublique } = require('../utils/apiError');
 const { journaliser } = require('../utils/auditLog');
 
@@ -20,8 +21,6 @@ const Client = require('../models/clientModel');
 const Produit = require('../models/produitModel');
 const Reparation = require('../models/reparationModel');
 const { requirePermission, requireRole } = require('../middleware/permissions');
-
-const DOSSIER_FACTURES_VENTES = SALES_INVOICE_STORAGE_DIR;
 
 router.get('/', requirePermission('factures', 'read'), async (req, res) => {
   try {
@@ -120,21 +119,22 @@ router.post('/', requireRole('admin'), async (req, res) => {
       totalTTC: 0
     });
 
-    await facture.save();
-
+    facture.numeroFacture = await Facture.prochainNumero();
     const {
       nomFichier,
       totalHT,
       tps,
       tvq,
       totalTTC,
-      pdfBuffer
-    } = await genererPDF(client, produit, reparations, facture.numeroFacture, appliquerTaxes);
+      pdfBuffer,
+      donneesPDF
+    } = await genererPDF(client, produit, reparations, facture.numeroFacture, appliquerTaxes, facture.dateEmission);
 
     facture.totalHT = totalHT;
     facture.tps = tps;
     facture.tvq = tvq;
     facture.totalTTC = totalTTC;
+    facture.donneesPDF = donneesPDF;
     await facture.save();
 
     if (envoyerParMail) {
@@ -217,36 +217,16 @@ router.get('/:id/pdf', requirePermission('factures', 'read'), async (req, res) =
       return res.status(400).send('ID facture invalide');
     }
 
-    const facture = await Facture.findById(req.params.id)
-      .populate('client')
-      .populate('produit')
-      .populate('reparations');
-
+    const facture = await Facture.findById(req.params.id).lean();
     if (!facture) return res.status(404).send('Facture introuvable');
 
-    if (facture.type === 'vente') {
-      const cheminPdf = await obtenirPdfFactureVente(facture);
-      return res.download(cheminPdf, path.basename(cheminPdf));
+    let vente = null;
+    if (facture.type === 'vente' && !facture.donneesPDF) {
+      const venteId = facture.sale || facture.sourceId;
+      if (venteId) vente = await Sale.findById(venteId).lean();
+      if (!vente) vente = await Sale.findOne({ factureId: facture._id }).lean();
     }
-
-    const appliquerTaxes = req.query.inclureTaxes === 'true'
-      ? true
-      : Boolean(facture.inclureTaxes);
-
-    const { nomFichier, pdfBuffer } = await genererPDF(
-      facture.client,
-      facture.produit,
-      facture.reparations,
-      facture.numeroFacture,
-      appliquerTaxes
-    );
-
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${nomFichier}"`
-    });
-
-    res.send(pdfBuffer);
+    return envoyerPDFTelechargeable(res, await obtenirPDFTelechargeable(facture, vente));
   } catch (err) {
     console.error('Erreur téléchargement PDF :', err);
     res.status(500).send('Erreur serveur');
@@ -582,8 +562,8 @@ async function obtenirPdfFactureVente(facture) {
   if (!vente) throw new Error('Vente liee introuvable.');
 
   const { pdfBuffer, nomFichier } = await genererFactureVentePDF(vente);
-  await fs.mkdir(DOSSIER_FACTURES_VENTES, { recursive: true });
-  const cheminPdf = path.join(DOSSIER_FACTURES_VENTES, nomFichier);
+  await fs.mkdir(RECONSTRUCTED_INVOICE_DIR, { recursive: true });
+  const cheminPdf = path.join(RECONSTRUCTED_INVOICE_DIR, nomFichier);
   await fs.writeFile(cheminPdf, pdfBuffer);
 
   vente.factureGeneree = true;

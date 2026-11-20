@@ -184,6 +184,7 @@ const factureSchema = new mongoose.Schema({
     min: 0,
     default: 0
   },
+  donneesPDF: mongoose.Schema.Types.Mixed,
   fichierPDF: {
     type: String,
     trim: true,
@@ -224,6 +225,15 @@ factureSchema.index(
 
 const Counter = require('./Counter');
 
+factureSchema.statics.prochainNumero = async function () {
+  const counter = await Counter.findByIdAndUpdate(
+    { _id: 'facture' },
+    { $inc: { seq: 1 } },
+    { upsert: true, new: true }
+  );
+  return counter.seq;
+};
+
 factureSchema.pre('validate', function (next) {
   if (!this.type) this.type = 'reparation';
   if (!this.sourceModel) this.sourceModel = this.type === 'vente' ? 'Sale' : 'Produit';
@@ -242,12 +252,7 @@ factureSchema.pre('validate', function (next) {
 
 factureSchema.pre('save', async function (next) {
   if (this.isNew && !this.numeroFacture) {
-    const counter = await Counter.findByIdAndUpdate(
-      { _id: 'facture' },
-      { $inc: { seq: 1 } },
-      { upsert: true, new: true }
-    );
-    this.numeroFacture = counter.seq;
+    this.numeroFacture = await this.constructor.prochainNumero();
   }
   next();
 });

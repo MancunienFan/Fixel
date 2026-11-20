@@ -15,34 +15,39 @@ function createPDFBuffer(doc) {
 }
 
 // ✅ Fonction principale (envoi mail)
-async function genererPDF(client, produit, reparations, numeroFacture, appliquerTaxes = true) {
-  const { doc, nomFichier, totalHT, tps, tvq, totalTTC } = await construirePDF(
-    client,
-    produit,
-    reparations,
+async function genererPDF(client, produit, reparations, numeroFacture, appliquerTaxes = true, date = new Date()) {
+  const lignes = reparations.map(({ description, prix }) => ({ description, prix }));
+  const totalHT = lignes.reduce((total, ligne) => total + ligne.prix, 0);
+  const tps = appliquerTaxes ? totalHT * 0.05 : 0;
+  const tvq = appliquerTaxes ? totalHT * 0.09975 : 0;
+  const donneesPDF = {
+    dateFacture: date.toISOString().slice(0, 10),
     numeroFacture,
-    appliquerTaxes
-  );
-  const pdfBuffer = await createPDFBuffer(doc);
-  return { nomFichier, totalHT, tps, tvq, totalTTC, pdfBuffer };
+    client: { nom: client.nom, prenom: client.prenom, email: client.email, telephone: client.telephone },
+    produit: { nom: produit.nom, model: produit.model, imei: produit.imei },
+    reparations: lignes,
+    appliquerTaxes,
+    totalHT,
+    tps,
+    tvq,
+    totalTTC: totalHT + tps + tvq,
+    contact: FIXEL_EMAIL
+  };
+  const pdf = await genererPDFReparationEmise(donneesPDF);
+  return { ...pdf, totalHT, tps, tvq, totalTTC: donneesPDF.totalTTC, donneesPDF };
 }
 
 // ✅ Fonction pour téléchargement direct
 async function genererPDFDepuisFacture(facture, appliquerTaxes = true) {
-  const client = facture.client;
-  const produit = facture.produit;
-  const reparations = facture.reparations;
-  const numeroFacture = facture.numeroFacture;
-
-  const { doc } = await construirePDF(client, produit, reparations, numeroFacture, appliquerTaxes);
-  return await createPDFBuffer(doc);
+  const { pdfBuffer } = await genererPDF(facture.client, facture.produit, facture.reparations, facture.numeroFacture, appliquerTaxes);
+  return pdfBuffer;
 }
 
 
 // ✅ Fonction réutilisable qui construit le PDF
-async function construirePDF(client, produit, reparations, numeroFacture, appliquerTaxes = true) {
+async function genererPDFReparationEmise(donnees) {
+  const { client, produit, reparations, numeroFacture, dateFacture, appliquerTaxes, totalHT, tps, tvq, totalTTC, contact } = donnees;
   const doc = new PDFDocument({ margin: 50 });
-  const dateFacture = new Date().toISOString().split('T')[0];
 
   const nomClientFichier = `${client.nom}_${client.prenom}`
     .toLowerCase()
@@ -80,28 +85,19 @@ async function construirePDF(client, produit, reparations, numeroFacture, appliq
 
   doc.moveDown(0.3).font('Helvetica');
   let y = startY + 20;
-  let totalHT = 0;
 
   reparations.forEach(r => {
     doc.text(r.description, startX, y);
     doc.text(r.prix.toFixed(2), startX + 300, y);
     y += 20;
-    totalHT += r.prix;
   });
 
-  let tps = 0;
-  let tvq = 0;
-  let totalTTC = totalHT;
 
   y += 20;
   doc.font('Helvetica-Bold');
   doc.text(`Total HT : ${totalHT.toFixed(2)} $ CAD`, startX + 300, y);
   y += 15;
   if (appliquerTaxes) {
-    tps = totalHT * 0.05;
-    tvq = totalHT * 0.09975;
-    totalTTC = totalHT + tps + tvq;
-
     doc.text(`TPS (5%) : ${tps.toFixed(2)} $ CAD`, startX + 300, y);
     y += 15;
     doc.text(`TVQ (9.975%) : ${tvq.toFixed(2)} $ CAD`, startX + 300, y);
@@ -118,23 +114,17 @@ async function construirePDF(client, produit, reparations, numeroFacture, appliq
   doc.fillColor('black').text('Contact :', { align: 'center' });
   doc.moveDown(0.3);
   doc.fillColor('blue')
-    .text(FIXEL_EMAIL, {
-      link: `mailto:${FIXEL_EMAIL}`,
+    .text(contact, {
+      link: `mailto:${contact}`,
       underline: true,
       align: 'center'
     });
 
-  return {
-    doc,
-    nomFichier,
-    totalHT,
-    tps,
-    tvq,
-    totalTTC
-  };
+  return { nomFichier, pdfBuffer: await createPDFBuffer(doc) };
 }
 
 module.exports = {
   genererPDF,
-  genererPDFDepuisFacture
+  genererPDFDepuisFacture,
+  genererPDFReparationEmise
 };

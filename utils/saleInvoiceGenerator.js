@@ -13,22 +13,58 @@ function createPDFBuffer(doc) {
   });
 }
 
-async function genererFactureVentePDF(sale) {
-  const doc = new PDFDocument({ margin: 48 });
+function donneesFactureVentePDF(sale) {
   const vente = sale.toObject ? sale.toObject() : sale;
-  const client = vente.client || null;
+  const { client } = vente;
+  const numeroFacture = vente.factureNumero || vente.numeroVente;
+  return {
+    factureNumero: numeroFacture,
+    nomFichier: nomFichierFactureVente(numeroFacture || vente._id),
+    numeroVente: vente.numeroVente,
+    dateEmission: vente.factureDate,
+    dateVenteAffichee: formatDate(vente.dateVente),
+    client: client ? { nom: client.nom, prenom: client.prenom, email: client.email, telephone: client.telephone } : null,
+    emailFacture: vente.emailFacture,
+    items: (vente.items || []).map(({ description, quantite, prixUnitaire, totalLigne }) => ({ description, quantite, prixUnitaire, totalLigne })),
+    sousTotal: vente.sousTotal,
+    rabais: vente.rabais,
+    sousTotalApresRabais: vente.sousTotalApresRabais,
+    taxesActivees: vente.taxesActivees,
+    montantTPS: vente.montantTPS,
+    montantTVQ: vente.montantTVQ,
+    total: vente.total,
+    modePaiement: vente.modePaiement,
+    statutPaiement: vente.statutPaiement,
+    montantPaye: vente.montantPaye,
+    solde: vente.solde,
+    garantieActive: vente.garantieActive,
+    garantieJours: vente.garantieJours,
+    dateFinGarantieAffichee: formatDate(vente.dateFinGarantie),
+    noteGarantie: vente.noteGarantie,
+    notes: vente.notes,
+    contact: FIXEL_EMAIL
+  };
+}
+
+function genererFactureVentePDF(sale) {
+  return genererPDFFactureVenteEmise(donneesFactureVentePDF(sale));
+}
+
+async function genererPDFFactureVenteEmise(vente) {
+  const doc = new PDFDocument({ margin: 48 });
+  const client = vente.client;
   const nomClient = client
     ? [client.prenom, client.nom].filter(Boolean).join(' ')
     : 'Vente comptoir';
-  const numeroFacture = vente.factureNumero || vente.numeroVente;
-  const nomFichier = `facture_vente_${String(numeroFacture || vente._id).padStart(4, '0')}.pdf`;
+  const numeroFacture = vente.factureNumero;
+  const nomFichier = vente.nomFichier;
 
   doc.fontSize(20).text('Facture - Fixel', { align: 'center' });
   doc.moveDown();
 
   doc.fontSize(10).text(`Facture: ${formatNumero(numeroFacture)}`, { align: 'right' });
   doc.text(`Vente: ${formatNumero(vente.numeroVente)}`, { align: 'right' });
-  doc.text(`Date: ${formatDate(vente.dateVente)}`, { align: 'right' });
+  doc.text(`Date: ${vente.dateVenteAffichee}`, { align: 'right' });
   doc.moveDown();
 
   doc.fontSize(12).font('Helvetica-Bold').text('Client');
@@ -92,7 +128,7 @@ async function genererFactureVentePDF(sale) {
     y += 16;
     doc.font('Helvetica')
       .text(`Duree: ${vente.garantieJours || 0} jours`, startX, y)
-      .text(`Fin: ${formatDate(vente.dateFinGarantie)}`, startX + 250, y);
+      .text(`Fin: ${vente.dateFinGarantieAffichee}`, startX + 250, y);
     y += 16;
     if (vente.noteGarantie) {
       doc.text(vente.noteGarantie, startX, y, { width: 470 });
@@ -108,7 +144,7 @@ async function genererFactureVentePDF(sale) {
 
   doc.moveDown(4);
   doc.fontSize(11).text('Merci pour votre confiance.', { align: 'center' });
-  doc.fillColor('blue').text(FIXEL_EMAIL, { align: 'center', underline: true, link: `mailto:${FIXEL_EMAIL}` });
+  doc.fillColor('blue').text(vente.contact, { align: 'center', underline: true, link: `mailto:${vente.contact}` });
 
   const pdfBuffer = await createPDFBuffer(doc);
   return { pdfBuffer, nomFichier };
@@ -121,6 +157,10 @@ function ligneTotal(doc, y, label, valeur) {
 
 function formatNumero(numero) {
   return numero ? `#${String(numero).padStart(4, '0')}` : '-';
+}
+
+function nomFichierFactureVente(numero) {
+  return `facture_vente_${String(numero).padStart(4, '0')}.pdf`;
 }
 
 function formatDate(valeur) {
@@ -155,5 +195,8 @@ function libelleStatutPaiement(valeur) {
 }
 
 module.exports = {
-  genererFactureVentePDF
+  donneesFactureVentePDF,
+  genererFactureVentePDF,
+  genererPDFFactureVenteEmise,
+  nomFichierFactureVente
 };

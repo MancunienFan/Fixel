@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!response.ok) throw new Error(result.error || result.erreur || 'Erreur lors de la creation de la facture');
 
       if (downloadChecked.checked) {
-        await telechargerFacture(result._id, inclureTaxesCheckbox.checked);
+        await telechargerFacture(result._id);
       }
 
       await chargerFactures(facturesTableBody);
@@ -279,7 +279,7 @@ function afficherFactures(tbody, factures) {
       <td>${renderBadge(pdfDisponible ? 'Oui' : 'Non', pdfDisponible ? 'success' : 'neutral')}</td>
       <td>${renderBadge(statutFacture === 'annulee' ? 'Annulee' : 'Active', statutFacture === 'annulee' ? 'danger' : 'success')}</td>
       <td class="invoice-actions">
-        <button type="button" class="table-action" data-download="${facture._id}" data-taxes="${facture.inclureTaxes ? 'true' : 'false'}">PDF</button>
+        <button type="button" class="table-action" data-download="${facture._id}">PDF</button>
         <button type="button" class="table-action" data-email="${facture._id}">Email</button>
         ${renderDetailsAction(facture)}
         ${renderDeleteAction(facture)}
@@ -291,7 +291,7 @@ function afficherFactures(tbody, factures) {
 
   tbody.querySelectorAll('[data-download]').forEach(button => {
     button.addEventListener('click', () => {
-      telechargerFacture(button.dataset.download, button.dataset.taxes === 'true')
+      telechargerFacture(button.dataset.download)
         .catch(err => alert(err.message || 'Impossible de telecharger la facture.'));
     });
   });
@@ -403,8 +403,8 @@ function nettoyerSelectionFactures() {
   });
 }
 
-async function telechargerFacture(factureId, inclureTaxes) {
-  const res = await fetch(`/api/factures/${factureId}/pdf?inclureTaxes=${inclureTaxes}`);
+async function telechargerFacture(factureId) {
+  const res = await fetch(`/api/factures/${factureId}/pdf`);
   if (!res.ok) throw new Error('Erreur lors du telechargement');
 
   const blob = await res.blob();
@@ -601,7 +601,7 @@ async function ouvrirDetailsFacture(factureId) {
     contenu.innerHTML = renderDetailsFacture(facture);
 
     configurerBoutonPaiementFacture(paidBtn, facture);
-    pdfBtn.onclick = () => telechargerFacture(facture._id, Boolean(facture.inclureTaxes))
+    pdfBtn.onclick = () => telechargerFacture(facture._id)
       .catch(err => alert(err.message || 'Impossible de telecharger la facture.'));
     emailBtn.onclick = () => envoyerFactureEmail(facture._id);
   } catch (err) {

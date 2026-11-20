@@ -2,6 +2,7 @@ const path = require('path');
 
 const INVOICE_STORAGE_DIR = path.join(__dirname, '..', 'storage', 'invoices');
 const SALES_INVOICE_STORAGE_DIR = path.join(INVOICE_STORAGE_DIR, 'sales');
+const RECONSTRUCTED_INVOICE_DIR = path.join(SALES_INVOICE_STORAGE_DIR, 'reconstituees');
 
 function cheminDansStockageFactures(chemin) {
   if (!chemin) return false;
@@ -17,11 +18,12 @@ function masquerCheminsFacture(objet) {
 
   const source = typeof objet.toObject === 'function' ? objet.toObject() : objet;
   const copie = { ...source };
-  const pdfDisponible = Boolean(copie.pdfPath || copie.fichierPDF || copie.facturePdfPath);
+  const pdfDisponible = Boolean(copie.donneesPDF || copie.pdfPath || copie.fichierPDF || copie.facturePdfPath);
 
   delete copie.pdfPath;
   delete copie.fichierPDF;
   delete copie.facturePdfPath;
+  delete copie.donneesPDF;
 
   if (pdfDisponible) copie.pdfDisponible = true;
 
@@ -36,6 +38,7 @@ function masquerCheminsFacture(objet) {
 module.exports = {
   INVOICE_STORAGE_DIR,
   SALES_INVOICE_STORAGE_DIR,
+  RECONSTRUCTED_INVOICE_DIR,
   cheminDansStockageFactures,
   masquerCheminsFacture
 };
