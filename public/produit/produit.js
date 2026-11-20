@@ -4,6 +4,16 @@ const produitId = params.get("id");
 const clientId = params.get("clientId");
 const API_BASE_URL = window.location.origin;
 
+document.getElementById('btn-retour').addEventListener('click', () => {
+  const clientRetourId = params.get('clientRetourId');
+  const vientDeLaFicheClient = produitId && params.get('origine') === 'client' &&
+    /^[a-f0-9]{24}$/i.test(clientRetourId);
+
+  window.location.href = vientDeLaFicheClient
+    ? `/client/client.html?id=${encodeURIComponent(clientRetourId)}`
+    : '/index.html';
+});
+
 const token = localStorage.getItem('token');
 const role = localStorage.getItem('role');
 const btnDetecterTelephone = document.getElementById('btn-detecter-telephone');

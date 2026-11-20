@@ -156,7 +156,8 @@ function afficherProduits(produits) {
     const tr = document.createElement('tr');
     tr.style.cursor = 'pointer';
     tr.onclick = () => {
-      window.location.href = `./produit/produit.html?id=${produit._id}`;
+      const params = new URLSearchParams({ id: produit._id, origine: 'liste' });
+      window.location.href = `./produit/produit.html?${params}`;
     };
 
     const estVendu = normaliserStatut(produit.disponibilite) === 'vendu';

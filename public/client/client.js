@@ -139,7 +139,8 @@ function chargerProduits(clientId) {
   tr.classList.add('clickable-row');
   tr.style.cursor = "pointer";
   tr.addEventListener('click', () => {
-    window.location.href = `../produit/produit.html?id=${produit._id}`;
+    const params = new URLSearchParams({ id: produit._id, origine: 'client', clientRetourId: clientId });
+    window.location.href = `../produit/produit.html?${params}`;
   });
 
   tr.innerHTML = `
